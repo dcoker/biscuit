@@ -1,12 +1,11 @@
 package awskms
 
 import (
-	"fmt"
-	"sync"
-
-	"strings"
-
 	"errors"
+	"fmt"
+	"os"
+	"strings"
+	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -43,21 +42,13 @@ func NewMultiRegionKey(aliasName string, regions []string, forceRegion string) (
 			defer wg.Done()
 			output := regionSpecificInfo{region: region}
 			client := kmsHelper{kms.New(session.New(&aws.Config{Region: &region}))}
-			alias, err := client.GetAliasByName(aliasName)
+			keyID, policy, err := client.GetAliasTargetAndPolicy(aliasName)
 			if err != nil {
 				output.err = err
-				results <- output
-				return
+			} else {
+				output.policy = policy
+				output.keyID = keyID
 			}
-			if alias == nil {
-				output.err = &errAliasNotFound{aliasName}
-				results <- output
-				return
-			}
-			output.keyID = *alias.TargetKeyId
-			policy, err := client.GetKeyPolicyByAlias(aliasName)
-			output.policy = policy
-			output.err = err
 			results <- output
 		}(region)
 	}
@@ -66,9 +57,12 @@ func NewMultiRegionKey(aliasName string, regions []string, forceRegion string) (
 
 	var policy string
 	var prevRegion string
+	var errs []error
 	for result := range results {
+		result := result
 		if result.err != nil {
-			return nil, &result
+			errs = append(errs, &result)
+			continue
 		}
 		mrk.regionToID[result.region] = result.keyID
 		if forceRegion == result.region {
@@ -81,8 +75,14 @@ func NewMultiRegionKey(aliasName string, regions []string, forceRegion string) (
 			continue
 		}
 		if result.policy != policy {
-			return nil, &errPolicyMismatch{prevRegion, result.region}
+			errs = append(errs, &errPolicyMismatch{prevRegion, result.region})
 		}
+	}
+	if len(errs) > 0 {
+		for _, err := range errs {
+			fmt.Fprintf(os.Stderr, "%s\n", err)
+		}
+		return nil, errors.New("multiregionkey: errors collecting key information - check -r flag?")
 	}
 	mrk.Policy = policy
 	return mrk, nil

@@ -43,18 +43,18 @@ func (k *kmsHelper) GetAliasByKeyID(keyID string) (string, error) {
 	return "", &errNoAliasFoundForKey{keyID}
 }
 
-func (k *kmsHelper) GetKeyPolicyByAlias(aliasName string) (string, error) {
+func (k *kmsHelper) GetAliasTargetAndPolicy(aliasName string) (string, string, error) {
 	alias, err := k.GetAliasByName(aliasName)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if alias == nil {
-		return "", &errAliasNotFound{aliasName}
+		return "", "", &errAliasNotFound{aliasName}
 	}
-	getKeyPolicyOutput, err := k.GetKeyPolicy(&kms.GetKeyPolicyInput{KeyId: alias.TargetKeyId,
+	policyOutput, err := k.GetKeyPolicy(&kms.GetKeyPolicyInput{KeyId: alias.TargetKeyId,
 		PolicyName: aws.String("default")})
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return *getKeyPolicyOutput.Policy, nil
+	return *alias.TargetKeyId, *policyOutput.Policy, nil
 }
