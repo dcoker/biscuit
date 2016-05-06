@@ -1,5 +1,7 @@
 # Biscuit
 
+[![Build Status](https://travis-ci.org/dcoker/biscuit.svg)](https://travis-ci.org/dcoker/secrets)
+
 Biscuit is a simple key-value store for your infrastructure secrets.
 
 ## Is Biscuit right for me?
