@@ -1,0 +1,42 @@
+Create a KMS Grant allowing specific operations on a specific secret.
+
+Grants enable you to delegate the use of a KMS key for a specific purpose
+-- usually Decrypt -- given certain constraints. Grants are most commonly
+used to allow certain principals to decrypt secrets encrypted under a
+specific key. The principal can be an IAM User, assumed role, or an IAM Role.
+
+As an example, consider an EC2 instance running a webserver in an IAM
+Role that authenticates itself to a database with a password. The
+webserver needs the database password (the secret), which is stored in a .yaml
+file created by the secrets tool. "kms grant create" is used to allow that
+specific role to decrypt a specific secret, in all of the regions that the
+secret is encrypted under. This example command will create grants for the
+"database_password" secret in all of the regions that it is currently encrypted
+in:
+
+	$ biscuit kms grants create --grantee-principal role/webservers \
+		-f stash.yml database_password
+
+Once created, any EC2 instance running in the webservers role can now run
+the "biscuit get -f stash.yml database_password".
+
+Grants created in this manner have a unique name generated for them. This is
+used to avoid redundant grants, and also so that you can revoke the grant
+using 'kms grants retire'.
+
+The grants are restricted to the name of the secret specified on the command
+line. Requests to decrypt any other secret encrypted under the same key will
+fail. Thus if you have 10 secrets in the file, all encrypted under the same
+KMS keys, and you want a role to be able to decrypt all of them, you must create
+10 grants per key. Note that AWS places per-key limits on the # of total grants
+(currently 250) and grants per principal (currently 30). The practical
+implication of this is that you should be mindful to remove grants that are
+no longer in use, put your AWS resources into IAM Roles, and issue grants to
+those IAM roles. For more
+information, see http://docs.aws.amazon.com/kms/latest/developerguide/limits.html
+
+By default, the grants created by Biscuit also allow the grantee to revoke
+the grant. This is useful in scenarios where you want a machine to install a
+secret into a secure place (such as an in-memory TLS certificate) and then
+disallow the role from subsequently decrypting that secret again. You can
+refine the list of operations delegated using command line flags.

@@ -1,0 +1,32 @@
+Initializes or updates a file with key configuration for use with AWS KMS.
+
+Biscuit needs a KMS key in each region that you wish to operate in. Keys
+are identified across regions via aliases in the form
+"alias/biscuit-{label}".
+
+If keys with those aliases exist, they will be used and the file specified
+with the --filename flag will be updated to refer to them.
+
+If the keys do not exist, they (and some associated policies) will be
+created by using a built-in CloudFormation stack.
+
+If the keys exist in some regions but not others, you can have the missing
+keys created with --create-missing-keys.
+
+The keys have labels that are used to identify them across regions.
+The default label is "default". You can specify your own labels if you wish
+to use multiple labels within a single account.
+
+The resources created by "kms init" are provisioned with useful default
+settings. The CloudFormation stack, the policies attached to the keys, and
+your IAM policies can be updated as your needs change without re-running
+"kms init". By default, the KMS key will have a policy attached to it that
+allows your principal complete control over the key. You can add other users
+to the list of "administrators" or "users" by using command line flags.
+
+"kms init" merges the configuration it generates with the existing
+configuration from the specified file, if it exists. Thus if you wish to
+encrypt the same values under multiple labels, you can do so by running
+"kms init" once for each label you wish to use. You can also change
+the default algorithm for future secrets by re-running "kms init" with the
+same label but a different algorithm choice.

@@ -1,0 +1,13 @@
+List grants created by 'kms grant create' for a specific secret.
+
+Example:
+
+	$ biscuit kms grants list -f stash.yaml database_password
+	alias/biscuit-default:
+	  biscuit-d523841fec:
+	    granteeprincipal: arn:aws:iam::123456789012:user/minima
+	    operations: [Decrypt, RetireGrant]
+	    grantids:
+	      us-east-1: c777da5c770db5029ac404349827017169ec6877c04a7c1837fc67a33c52669c
+	      us-west-1: 4ea01c34a9e43bc309c0fc710a5de453a66c167b80def9e43f6173ab85e01e6a
+	      us-west-2: 1f11414ae34e58d601c642553b671459c39c6bbb529242114f50ed962d483a37

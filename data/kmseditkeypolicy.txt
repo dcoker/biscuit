@@ -1,0 +1,12 @@
+Edit the KMS Key Policy for a label across regions.
+
+edit-key-policy opens up your favorite editor with the JSON representation
+of the KMS Key Policy that is currently set on the KMS keys associated with
+a specific label. Changes you make to this file are written back to the keys
+in all of the applicable regions.
+
+edit-key-policy will verify that the policies in all of the regions are
+the same before allowing you to edit the policy. If they differ, you will
+need to resolve the differences manually. If you wish to overwrite all of
+the regions with a policy from one of the regions, you may use the
+--force-region flag.

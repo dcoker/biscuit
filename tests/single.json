@@ -1,0 +1,11 @@
+{
+  "name1": [
+    {
+      "key_id": "key",
+      "key_manager": "testing",
+      "algorithm": "none",
+      "ciphertext": "YmFy",
+      "key_ciphertext": "CiB9r3U+rrvEBKL/7eioGn+LZD3GPj9GGvlDUOpttP3gHhKnAQEBAQB4fa91Pq67xASi/+3oqBp/i2Q9xj4/Rhr5Q1DqbbT94B4AAAB+MHwGCSqGSIb3DQEHBqBvMG0CAQAwaAYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAyXUROC1CZwzUPvN5wCARCAO899ESvrrKzRqSFml4hFkG0+mrluccEnTbWwT4Xc34j8x7tY5c121xVG5DI/P0blwVTJYsVZVVa228cD"
+    }
+  ]
+}
