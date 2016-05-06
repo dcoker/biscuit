@@ -1,5 +1,6 @@
 cmd github.com/golang/lint/golint
 cmd github.com/jteeuwen/go-bindata/go-bindata
+cmd github.com/mitchellh/gox
 cmd github.com/robfig/glock
 github.com/agtorre/gocolorize f42b554bf7f006936130c9bb4f971afd2d87f671
 github.com/alecthomas/template a0175ee3bccc567396460bf5acd36800cb10c49c
@@ -8,6 +9,8 @@ github.com/aws/aws-sdk-go 837182f7da805c8fcc50f8d6585bf311acfeda4a
 github.com/golang/lint 8f348af5e29faa4262efdc14302797f23774e477
 github.com/jteeuwen/go-bindata a0ff2567cfb70903282db057e799fd826784d41d
 github.com/mattn/go-isatty 56b76bdf51f7708750eac80fa38b952bb9f32639
+github.com/mitchellh/gox 07260c36cdd95ff01eedd8215b923c8689ada835
+github.com/mitchellh/iochan 87b45ffd0e9581375c491fef3d32130bb15c5bd7
 github.com/robfig/glock cb3c3ec56de988289cab7bbd284eddc04dfee6c9
 github.com/stretchr/testify c5d7a69bf8a2c9c374798160849c071093e41dd1
 golang.org/x/crypto 7b428712abe956d0e9e1e9a01e163fb6c7171438

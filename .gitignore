@@ -159,3 +159,5 @@ Temporary Items
 # Ignore any local secrets
 /*.yml
 /*.yaml
+
+build_docker_cross
