@@ -266,6 +266,73 @@ If you use `biscuit kms init` to create your keys, you can use the
 created the keys but want to change the policy, use the interactive
 `biscuit kms edit-key-policy` to apply changes to all regions simultaneously.
 
+### What is the minimum IAM Policy needed to run `kms init`?
+
+The IAM Policy below is the smallest set of permissions needed to get
+started with Biscuit using `kms init`. Be sure to replace the account 
+number `123456789012` with your own.
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowKmsListAliasesAndCreateKey",
+            "Effect": "Allow",
+            "Action": [
+                "kms:ListAliases",
+                "kms:CreateKey"
+            ],
+            "Resource": [
+                "*"
+            ]
+        },
+        {
+            "Sid": "AllowKmsCreateAlias",
+            "Effect": "Allow",
+            "Action": [
+                "kms:CreateAlias"
+            ],
+            "Resource": [
+                "arn:aws:kms:*:123456789012:alias/biscuit-*"
+            ]
+        },
+        {
+            "Sid": "AllowKmsDeleteAlias",
+            "Effect": "Allow",
+            "Action": [
+                "kms:DeleteAlias"
+            ],
+            "Resource": [
+                "arn:aws:kms:*:123456789012:alias/biscuit-*"
+            ]
+        },
+        {
+            "Sid": "AllowCloudFormationCreate",
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:DescribeStacks",
+                "cloudformation:CreateStack",
+                "cloudformation:DeleteStack"
+            ],
+            "Resource": [
+                "arn:aws:cloudformation:*:123456789012:stack/biscuit-*"
+            ]
+        },
+        {
+            "Sid": "AllowCloudFormationDelete",
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:DeleteStack"
+            ],
+            "Resource": [
+                "arn:aws:cloudformation:*:123456789012:stack/biscuit-*"
+            ]
+        }
+    ]
+}
+```
+
 ### Does Biscuit support multi-factor authentication?
 
 Yes. IAM Policies and the KMS Key Policies support the `aws:MultiFactorAuthPresent` condition.
