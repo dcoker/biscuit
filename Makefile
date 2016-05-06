@@ -41,7 +41,7 @@ bindata.go: data
 doc.go: data
 	/bin/echo -e '/*\n' > doc.go
 	cat data/usage.txt >> doc.go
-	/bin/echo -e '\n*/\npackage main\n' >> doc.go
+	/bin/echo -e '\n*/\npackage main' >> doc.go
 
 .PHONY: check
 check:
