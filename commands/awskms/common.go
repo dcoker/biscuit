@@ -29,7 +29,7 @@ type errAliasNotFound struct {
 }
 
 func (e *errAliasNotFound) Error() string {
-	return fmt.Sprintf("alias '%s' not found", e.aliasName)
+	return fmt.Sprintf("key alias '%s' not found", e.aliasName)
 }
 
 type errNoAliasFoundForKey struct {
