@@ -3,7 +3,7 @@ sudo: required
 services:
 - docker
 before_install:
-- pip install --upgrade awscli
+- sudo pip install --upgrade awscli
 script:
 - "make docker-cross
   && cd tests
