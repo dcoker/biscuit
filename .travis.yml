@@ -1,0 +1,6 @@
+dist: trusty
+sudo: required
+services:
+  - docker
+script:
+  - make docker-build
