@@ -3,7 +3,7 @@
 # Run a bunch of shell-based tests in isolated environments using Docker.
 #
 set -e
-REPOSITORY=/go/src/github.com/dcoker/secrets/
+REPOSITORY=/go/src/github.com/dcoker/biscuit/
 AWS_ACCESS_KEY_ID="$(aws configure get aws_access_key_id)"
 AWS_SECRET_ACCESS_KEY="$(aws configure get aws_secret_access_key)"
 AWS_SESSION_TOKEN="$(aws configure get aws_session_token)"
@@ -29,7 +29,7 @@ function invoke_one() {
     -e ARN2_REGION="${ARN2_REGION}" \
     -e REPOSITORY=${REPOSITORY} \
     -w /tmp \
-    secrets/local \
+    biscuit/local \
     /bin/bash -c "$@"
 }
 
