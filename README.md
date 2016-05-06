@@ -41,7 +41,11 @@ you if you answer "yes" to any of these questions:
 
 #### From Binaries
 
-coming soon
+| Platform | 32-bit | 64-bit | ARM | ARM-64 |
+|:---------|:-------|:-------|:----|:---|
+| Mac OSX | | [download](https://s3-us-west-2.amazonaws.com/biscuit-binaries/latest/biscuit/darwin/amd64/biscuit) | | |
+| Linux | [download](https://s3-us-west-2.amazonaws.com/biscuit-binaries/latest/biscuit/linux/386/biscuit) | [download](https://s3-us-west-2.amazonaws.com/biscuit-binaries/latest/biscuit/linux/amd64/biscuit) | [download](https://s3-us-west-2.amazonaws.com/biscuit-binaries/latest/biscuit/linux/arm/biscuit) | [download](https://s3-us-west-2.amazonaws.com/biscuit-binaries/latest/biscuit/linux/arm64/biscuit) |
+| Windows | [download](https://s3-us-west-2.amazonaws.com/biscuit-binaries/latest/biscuit/windows/386/biscuit.exe) | [download](https://s3-us-west-2.amazonaws.com/biscuit-binaries/latest/biscuit/windows/amd64/biscuit.exe) | | |
 
 #### From Source
 
