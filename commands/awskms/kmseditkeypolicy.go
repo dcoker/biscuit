@@ -45,6 +45,11 @@ func (r *kmsEditKeyPolicy) Run() error {
 		return err
 	}
 
+	mrk.Policy, err = prettifyJSON(mrk.Policy)
+	if err != nil {
+		return err
+	}
+
 	newPolicy, err := launchEditor(mrk.Policy)
 	if err != nil {
 		return err
