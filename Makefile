@@ -7,7 +7,7 @@ GOLINT := ../../../../bin/golint
 GLOCK := ../../../../bin/glock
 BINDATA := ../../../../bin/go-bindata
 PROGNAME := biscuit
-VERSION := $(shell git describe --long --tags --dirty --always)
+VERSION := $(shell git describe --long --tags --always)
 GOVERSIONLDFLAG := -ldflags="-X main.Version=$(VERSION)"
 
 .PHONY: build
