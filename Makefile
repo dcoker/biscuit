@@ -61,10 +61,11 @@ clean:
 .PHONY: cross
 cross:
 	gox $(GOVERSIONLDFLAG) \
-		-output 'build/{{.Dir}}/{{.OS}}/{{.Arch}}/biscuit' \
+		-output 'build/{{.Dir}}/{{.OS}}_{{.Arch}}/biscuit' \
 		-os "linux darwin windows" \
 		-arch "amd64 arm arm64 386" \
 		-osarch '!darwin/arm !darwin/386 !darwin/arm64'
+	./cross.sh
 
 .PHONY: docker-build
 docker-build:
