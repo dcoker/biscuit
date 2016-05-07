@@ -22,10 +22,11 @@ func NewKmsGrantsList(c *kingpin.CmdClause) shared.Command {
 }
 
 type grantsForOneAlias struct {
-	GranteePrincipal  *string
-	RetiringPrincipal *string   `yaml:",omitempty"`
-	Operations        []*string `yaml:",flow"`
-	GrantIds          map[string]string
+	GranteePrincipal        *string
+	RetiringPrincipal       *string            `yaml:",omitempty"`
+	EncryptionContextSubset map[string]*string `yaml:",flow,omitempty"`
+	Operations              []*string          `yaml:",flow"`
+	GrantIds                map[string]string
 }
 
 // Run runs the command.
@@ -65,14 +66,21 @@ func (w *kmsGrantsList) Run() error {
 						RetiringPrincipal: grant.RetiringPrincipal,
 						Operations:        grant.Operations,
 					}
+					if grant.Constraints != nil {
+						entry.EncryptionContextSubset = grant.Constraints.EncryptionContextSubset
+					}
 					entry.GrantIds = make(map[string]string)
 					entry.GrantIds[region] = *grant.GrantId
 					n2e[*grant.Name] = entry
 				}
 			}
 		}
-		output[aliasName] = n2e
+		if len(n2e) > 0 {
+			output[aliasName] = n2e
+		}
 	}
-	fmt.Print(shared.MustYaml(output))
+	if len(output) > 0 {
+		fmt.Print(shared.MustYaml(output))
+	}
 	return nil
 }

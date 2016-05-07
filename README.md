@@ -172,7 +172,7 @@ to decrypt the appropriate values.
 
 Biscuit will create and retire those grants for you.
 
-Here's an example:
+Here's how to grant role/webserver and user/gordon the ability to decrypt the launch codes:
 
 ```shell
 biscuit kms grants create --grantee-principal role/webserver -f secrets.yml launch_codes
@@ -180,9 +180,12 @@ biscuit kms grants create --grantee-principal user/gordon -f secrets.yml launch_
 biscuit kms grants list -f secrets.yml launch_codes
 ```
 
-Once created, the principals listed (and any EC2 instances or Lambda 
-functions running under those roles) can decrypt the `launch_codes`
-secret.
+If you wish to allow a principal to decrypt all values encrypted under the same set of keys as
+the launch codes, you can pass the `--all-names` flag:
+
+```shell
+biscuit kms grants create -g role/webserver -f secrets.yml --all-names launch_codes
+```
 
 You can also retire grants when they are no longer useful:
 
@@ -191,6 +194,10 @@ biscuit kms grants list -f secrets.yml launch_codes
 biscuit kms grants retire -f secrets.yml --grant-name biscuit-ff8102edc8 launch_codes
 ```
 
+Biscuit manages grants using the KMS [CreateGrant](http://docs.aws.amazon.com/kms/latest/APIReference/API_CreateGrant.html),
+[ListGrants](http://docs.aws.amazon.com/kms/latest/APIReference/API_ListGrants.html), and 
+[RetireGrant](http://docs.aws.amazon.com/kms/latest/APIReference/API_RetireGrant.html) APIs.
+
 #### KMS Key Policies
 
 KMS Keys have their own policies. See 
@@ -198,6 +205,9 @@ KMS Keys have their own policies. See
 for more details. If you have just a few users, this is possibly the easiest
 mechanism to use to control access. You can run `biscuit kms edit-key-policy` to 
 edit the policy document across all of your regions at once.
+
+Biscuit manages Key Policies using the KMS [GetKeyPolicy](http://docs.aws.amazon.com/kms/latest/APIReference/API_GetKeyPolicy.html) 
+and [SetKeyPolicy](http://docs.aws.amazon.com/kms/latest/APIReference/API_SetKeyPolicy.html) APIs.
 
 #### IAM Policies
 
@@ -212,6 +222,8 @@ specifying `kms:Decrypt` as the Action and the full key ARNs in the Resource fie
 Note: IAM Policies are global entities, whereas KMS Keys are unique per region. Thus if you have a 3-region 
 configuration, any IAM Policies that explicitly grant access to KMS Keys will need to list all 3 
 region-specific key ARNs.
+
+Biscuit does not manage IAM Policies for you. 
 
 If you wish to disallow IAM Policies from controlling access to your keys,
 you can do so by passing `--disable-iam-policies` to `kms init`. When IAM

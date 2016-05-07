@@ -23,17 +23,20 @@ type kmsGrantsCreate struct {
 	name,
 	granteePrincipal,
 	retiringPrincipal,
-	filename *string
+	filename   *string
 	operations *[]string
+	allNames   *bool
 }
 
 // NewKmsGrantsCreate constructs the command to create a grant.
 func NewKmsGrantsCreate(c *kingpin.CmdClause) shared.Command {
 	params := &kmsGrantsCreate{}
 	params.name = c.Arg("name", "Name of the secret to grant access to.").Required().String()
+	params.allNames = c.Flag("all-names", "If set, the grant allows the grantee to decrypt any values encrypted under "+
+		"the keys that the named secret is encrypted with.").Default("false").Bool()
 	params.granteePrincipal = c.Flag("grantee-principal", "The ARN that will be granted "+
 		"additional privileges.").Short('g').PlaceHolder("ARN").Required().String()
-	params.retiringPrincipal = c.Flag("retiring-principal", "The ARN that can revoke the "+
+	params.retiringPrincipal = c.Flag("retiring-principal", "The ARN that can retire the "+
 		"grant.").Short('e').PlaceHolder("ARN").String()
 	params.operations = operationsFlag(c)
 	params.filename = shared.FilenameFlag(c)
@@ -69,11 +72,13 @@ func (w *kmsGrantsCreate) Run() error {
 
 	// The template from which grants in each region are created.
 	createGrantInput := kms.CreateGrantInput{
-		Constraints: &kms.GrantConstraints{
-			EncryptionContextSubset: map[string]*string{"SecretName": w.name},
-		},
 		Operations:       aws.StringSlice(*w.operations),
 		GranteePrincipal: &granteeArn,
+	}
+	if !*w.allNames {
+		createGrantInput.Constraints = &kms.GrantConstraints{
+			EncryptionContextSubset: map[string]*string{"SecretName": w.name},
+		}
 	}
 	if len(retireeArn) > 0 {
 		createGrantInput.RetiringPrincipal = &retireeArn
