@@ -39,15 +39,11 @@ you if you answer "yes" to any of these questions:
 
 ### Installing
 
-#### From Binaries
+#### Downloading
 
-| Platform | 32-bit | 64-bit | ARM | ARM-64 |
-|:---------|:-------|:-------|:----|:---|
-| Mac OSX | | [download](https://s3-us-west-2.amazonaws.com/biscuit-binaries/latest/biscuit/darwin_amd64/biscuit) | | |
-| Linux | [download](https://s3-us-west-2.amazonaws.com/biscuit-binaries/latest/biscuit/linux_386/biscuit) | [download](https://s3-us-west-2.amazonaws.com/biscuit-binaries/latest/biscuit/linux_amd64/biscuit) | [download](https://s3-us-west-2.amazonaws.com/biscuit-binaries/latest/biscuit/linux_arm/biscuit) | [download](https://s3-us-west-2.amazonaws.com/biscuit-binaries/latest/biscuit/linux_arm64/biscuit) |
-| Windows | [download](https://s3-us-west-2.amazonaws.com/biscuit-binaries/latest/biscuit/windows_386/biscuit.exe) | [download](https://s3-us-west-2.amazonaws.com/biscuit-binaries/latest/biscuit/windows_amd64/biscuit.exe) | | |
+See [releases](https://github.com/dcoker/biscuit/releases) for the latest release.
 
-#### From Source
+#### Building from Source
 
 If you have Golang 1.6+ installed, you can install with:
 
