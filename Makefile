@@ -56,6 +56,7 @@ fmt:
 .PHONY: clean
 clean:
 	rm doc.go bindata.go
+	rm -f $(GOPATH)/bin/$(PROGNAME)
 	$(GO) clean $(GOFLAGS) -i $(PKG)
 
 .PHONY: cross
