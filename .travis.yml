@@ -8,11 +8,12 @@ script:
 - "make docker-cross
   && cd tests
   && ./run-tests.sh
+  && cd ..
   && aws s3 sync
-    --metadata Version=$(git describe --long --tags --dirty --always),TravisJobNumber=${TRAVIS_JOB_NUMBER}
+    --metadata TravisJobNumber=${TRAVIS_JOB_NUMBER}
     --acl public-read
-    ../build_docker_cross/
-    s3://biscuit-binaries/latest/"
+    --content-disposition attachment
+    build_docker_cross/ s3://biscuit-binaries/latest/
 env:
   global:
   - secure: goNhQbKr0NfJ1k1Od+aDav6f/f7pwcSPZLIGiEYeuTpE4wUSG8GoYINpzFzCZi/ermEqdN5Be8h1grhWJ5TcbyQrh5NY/ZgMI0QgljZH1lW5dwYA88hSnsuMkg8BV5Ky8gvIh18v+Vqx9a4+ACT36is5YINJwBxE6UFAo8a1YVmlhddcRc+TVcKpzPzmalaul4PwN7zUvJbSJiJk7/eAmNB6k3XcSfM+MdmJ8YietcSXMDiWu4QcD4sEeceUPrjStH2mlcQRfwlG18cMGEThURu3B0PWoZvLw/0JlEp538PYPKMawxWgEFpqJhCmxdBnLM7jJi7L2Qfl/7HBJyXVyAqJ/cxztl1PXSsLjnrIHKSZAzeKvVqpSb5vqaZNwq4SNv+cSdIv89f+lmvNt4d2mNzGlmysw/1qwgCjjIoGtf8BnUF4bSQtwvYbZLHg80fvfKFKMNOatMzkU7ZrAlpjSQ7AV9EpQECk9mu8WQ7x5LLyw/DtJRhoyVj+dnlwKWrfhYho6hN7k+lip0L3dDtp/4p5zJMCjgIi2jdmabjtyGRRlHhsuNXlNFRl8EWFykrzKHvtZbrHq+DCkgG0vKo8xQTAZKBEfy/N/GSpHOTEqsl9UVhnj+0Y9e5ScpukYOLGJu6fdPLVvhh2iGTq4y+n8TMvHDdDGU4n81TKHdKsln4=
