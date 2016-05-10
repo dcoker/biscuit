@@ -142,8 +142,11 @@ _keys:
 
 ### How much does this cost?
 
-Biscuit requires one key in each region you wish to use. See 
-[AWS Key Management Service Pricing](https://aws.amazon.com/kms/pricing/) for pricing.
+Biscuit requires one key in each region you wish to use. Most users can
+expect to pay ~$1/mo per region per label, and additional usage charges
+for heavy users. See
+[AWS Key Management Service Pricing](https://aws.amazon.com/kms/pricing/)
+for pricing.
 
 ### Can I use it in a single AWS region?
 
