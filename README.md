@@ -32,7 +32,7 @@ you if you answer "yes" to any of these questions:
 |:----------------------------------------------------|:-------------------|:-------------|:----|:---------|:---------|:---------|:-----------|:-------|
 | Biscuit                                             | No                 | Yes          | Yes | No       | File     | Required | AWS Only   | No     |
 | [Credstash](https://github.com/fugue/credstash)     | No                 | No           | Yes | No       | DynamoDB | Required | AWS Only   | No     |
-| [Lyft Confidant](https://github.com/lyft/confidant) | Yes                | No           | No  | No       | DynamoDB | Required | AWS Only   | Yes    |
+| [Lyft Confidant](https://github.com/lyft/confidant) | Yes                | Yes          | Yes | No       | DynamoDB | Required | AWS Only   | Yes    |
 | [Hashicorp Vault](https://www.vaultproject.io)      | Yes                | Yes          | Yes | Yes      | Varied   | Optional | Multiple   | No     |
 
 ## Quick Start
