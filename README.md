@@ -62,7 +62,7 @@ biscuit kms get-caller-identity
 biscuit kms init -f secrets.yml
 
 # Store the launch codes.
-biscuit put -f secrets.yml launch_codes 0000
+biscuit put -f secrets.yml -- launch_codes 0000
 
 # Decrypt the launch codes.
 biscuit get -f secrets.yml launch_codes
@@ -258,7 +258,7 @@ biscuit kms init -l production -f production.yml --administrators role/prod-keym
 biscuit put -f production.yml ssl_key -i wildcard.key
 
 # Create a file that doesn't use encryption at all.
-biscuit put -f unittest.yml -a none database_password testing
+biscuit put -f unittest.yml -a none -- database_password testing
 ```
 
 ### What's the difference between an "administrator" and a "user"?
@@ -396,7 +396,7 @@ application-specific rotation behaviors.
 Here is an example using JSON and [jq](https://stedolan.github.io/jq/):
 
 ```shell
-biscuit put -f secrets.yml database_passwords '{"1": "pass1", "2": "pass2"}'
+biscuit put -f secrets.yml -- database_passwords '{"1": "pass1", "2": "pass2"}'
 biscuit get -f secrets.yml database_passwords | jq -r '.[to_entries | map(.key) | map(tonumber) | max | tostring]'
 ```
 
