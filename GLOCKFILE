@@ -5,7 +5,7 @@ cmd github.com/robfig/glock
 github.com/agtorre/gocolorize f42b554bf7f006936130c9bb4f971afd2d87f671
 github.com/alecthomas/template a0175ee3bccc567396460bf5acd36800cb10c49c
 github.com/alecthomas/units 2efee857e7cfd4f3d0138cc3cbb1b4966962b93a
-github.com/aws/aws-sdk-go 837182f7da805c8fcc50f8d6585bf311acfeda4a
+github.com/aws/aws-sdk-go 45d21707a58c6bfdf7cf12197d054769d88f7d13
 github.com/golang/lint 8f348af5e29faa4262efdc14302797f23774e477
 github.com/jteeuwen/go-bindata a0ff2567cfb70903282db057e799fd826784d41d
 github.com/mattn/go-isatty 56b76bdf51f7708750eac80fa38b952bb9f32639
