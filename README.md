@@ -150,7 +150,14 @@ for pricing.
 
 ### Can I use it in a single AWS region?
 
-Yes. Use the `-r` or `BISCUIT_REGIONS` environment variable to set the region.
+Yes. Use the `-r` flag or the `BISCUIT_REGIONS` environment variable to specify
+the region.
+
+Example:
+
+```shell
+biscuit kms init -r us-west-2 -f secrets.yml
+```
 
 ### What do I do with the .yml file after it is created?
 
