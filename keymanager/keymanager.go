@@ -55,7 +55,7 @@ type EnvelopeKey struct {
 	// Plaintext is the plaintext encryption key.
 	Plaintext []byte
 	// Ciphertext is the ciphertext of the encryption key, encrypted with a key that is managed
-	// by the key manager..
+	// by the key manager.
 	Ciphertext []byte
 }
 
