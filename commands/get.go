@@ -14,15 +14,17 @@ import (
 )
 
 type get struct {
-	name     *string
-	writeTo  *string
-	filename *string
+	name           *string
+	writeTo        *string
+	filename       *string
+	regionPriority *[]string
 }
 
 // NewGet constructs the command to decrypt an encrypted value.
 func NewGet(c *kingpin.CmdClause) shared.Command {
 	return &get{
-		name: shared.SecretNameArg(c),
+		name:           shared.SecretNameArg(c),
+		regionPriority: shared.AwsRegionPriorityFlag(c),
 		writeTo: c.Flag("output", "Write to FILE instead of stdout.").
 			PlaceHolder("FILE").
 			Short('o').
@@ -38,6 +40,7 @@ func (r *get) Run() error {
 	if err != nil {
 		return err
 	}
+	store.SortByKmsRegion(*r.regionPriority)(values)
 	// There may be multiple values, but we assume that each one represents the same contents
 	// so we stop after processing just one successfully.
 	var plaintext []byte

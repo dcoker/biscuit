@@ -11,12 +11,16 @@ import (
 )
 
 type export struct {
-	filename *string
+	filename       *string
+	regionPriority *[]string
 }
 
 // NewExport configures the flags for export.
 func NewExport(c *kingpin.CmdClause) shared.Command {
-	return &export{filename: shared.FilenameFlag(c)}
+	return &export{
+		filename:       shared.FilenameFlag(c),
+		regionPriority: shared.AwsRegionPriorityFlag(c),
+	}
 }
 
 // Run the command.
@@ -27,12 +31,13 @@ func (r *export) Run() error {
 		return err
 	}
 	errs := 0
-	for name, value := range entries {
+	for name, values := range entries {
 		if name == store.KeyTemplateName {
 			continue
 		}
 
-		for _, v := range value {
+		store.SortByKmsRegion(*r.regionPriority)(values)
+		for _, v := range values {
 			bytes, err := decryptOneValue(v, name)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: unable to decrypt, skipping: %s\n", err)

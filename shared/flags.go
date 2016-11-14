@@ -162,6 +162,23 @@ func FilenameFlag(cc *kingpin.CmdClause) *string {
 		String()
 }
 
+// AwsRegionPriority defines a flag allowing the user to specify an ordered list of
+// AWS regions to prioritize.
+func AwsRegionPriorityFlag(cc *kingpin.CmdClause) *[]string {
+	name := "aws-region-priority"
+	fc := cc.Flag(name,
+		"Comma-delimited list of AWS regions to prefer for "+
+			"decryption operations. Biscuit will attempt to use the "+
+			"KMS endpoints in these regions before trying the "+
+			"other regions. If the environment variable AWS_REGION "+
+			"is set, it will be used as the default value.").
+		Short('p').
+		Envar("AWS_REGION")
+	val := (&CommaSeparatedList{}).Name(name)
+	fc.SetValue(val)
+	return &val.V
+}
+
 // SecretNameArg defines a flag for the name of the secret.
 func SecretNameArg(cc *kingpin.CmdClause) *string {
 	return cc.Arg("name", "Name of the secret to read.").Required().String()

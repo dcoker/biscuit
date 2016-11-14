@@ -241,6 +241,36 @@ Policies are disabled, the only way to control access to keys is via Grants and 
 Policies. For more information on how this works, see the CloudFormation 
 template in the source repository and the Key Policies doc linked above.
 
+### How do I control which AWS region is used to decrypt the values?
+
+Each AWS region has its own isolated KMS instance. This means that KMS keys
+are per-region resources, and using a KMS key requires communicating with the KMS
+service in the region that holds that key.
+
+When encrypting, Biscuit will attempt to encrypt the secrets by using all of
+the KMS instances corresponding to the regions of the keys it is told to use.
+This can incur cross-datacenter traffic and is slower than using only the
+closest region.
+
+When decrypting, Biscuit only needs to decrypt under one of the keys. By
+default, Biscuit will prioritize using keys that are in the same region that
+the caller is in. This is determined by the `AWS_REGION` environment variable.
+If you do not have an `AWS_REGION` variable set, Biscuit will process keys in
+the order that they appear in the .yaml file.
+
+You can override this behavior by passing a `--aws-region-priority` flag to the
+`get` or `export` operations. Here is an example invocation which prioritizes
+keys in ap-north-1 and us-west-2:
+
+```shell
+biscuit get --aws-region-priority ap-north-1,us-west-2 -f secrets.yml launch_codes
+```
+
+We recommend you make arrangements on your EC2 instances to either set the
+`AWS_REGION` flag, or pass a latency-ordered list of regions via the
+`--aws-region-priority` flag.
+
+
 ### How do I keep my development and production keys separate?
  
 Biscuit tracks keys across regions by using a label. Labels are embedded 
