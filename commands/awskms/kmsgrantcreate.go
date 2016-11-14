@@ -23,7 +23,7 @@ type kmsGrantsCreate struct {
 	name,
 	granteePrincipal,
 	retiringPrincipal,
-	filename   *string
+	filename *string
 	operations *[]string
 	allNames   *bool
 }
