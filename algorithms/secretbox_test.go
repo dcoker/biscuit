@@ -1,9 +1,9 @@
 package algorithms
 
-import "testing"
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
