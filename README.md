@@ -45,7 +45,7 @@ See [releases](https://github.com/dcoker/biscuit/releases) for the latest releas
 
 #### Building from Source
 
-If you have Golang 1.6+ installed, you can install with:
+If you have Golang 1.16+ installed, you can install with:
 
 ```
 go get -v github.com/dcoker/biscuit

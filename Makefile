@@ -4,23 +4,18 @@ PKG := ./...
 TESTS := ".*"
 GOIMPORTS := ../../../../bin/goimports
 GOLINT := ../../../../bin/golint
-BINDATA := ../../../../bin/go-bindata
 PROGNAME := biscuit
 VERSION := $(shell git describe --long --tags --always)
 GOVERSIONLDFLAG := -ldflags="-X main.Version=$(VERSION)"
 
 .PHONY: build
-build: doc.go bindata.go test
+build: doc.go test
 	$(GO) install $(GOVERSIONLDFLAG) $(GOFLAGS)
 
 .PHONY: test
 test:
 	$(GO) test $(GOFLAGS) -i $(PKG)
 	$(GO) test $(GOFLAGS) $(PKG)
-
-bindata.go: data
-	$(BINDATA) -o bindata.go -prefix data -ignore=\\.gitignore data/...
-	gofmt -s -w bindata.go
 
 doc.go: data
 	/bin/echo -e '/*\n' > doc.go
@@ -39,7 +34,7 @@ fmt:
 
 .PHONY: clean
 clean:
-	rm doc.go bindata.go
+	rm doc.go
 	rm -f $(GOPATH)/bin/$(PROGNAME)
 	$(GO) clean $(GOFLAGS) -i $(PKG)
 
