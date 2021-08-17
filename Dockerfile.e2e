@@ -1,5 +1,6 @@
 FROM golang:1.16
 ADD Makefile src/github.com/dcoker/biscuit/
+RUN go install github.com/mitchellh/gox@v1.0.1
 WORKDIR /go/src/github.com/dcoker/biscuit
 ADD go.mod .
 ADD go.sum .
