@@ -1,8 +1,10 @@
 package awskms
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"github.com/dcoker/biscuit/keymanager"
 	"github.com/dcoker/biscuit/shared"
 	"github.com/dcoker/biscuit/store"
@@ -23,14 +25,14 @@ func NewKmsGrantsList(c *kingpin.CmdClause) shared.Command {
 
 type grantsForOneAlias struct {
 	GranteePrincipal        *string
-	RetiringPrincipal       *string            `yaml:",omitempty"`
-	EncryptionContextSubset map[string]*string `yaml:",flow,omitempty"`
-	Operations              []*string          `yaml:",flow"`
+	RetiringPrincipal       *string                `yaml:",omitempty"`
+	EncryptionContextSubset map[string]string      `yaml:",flow,omitempty"`
+	Operations              []types.GrantOperation `yaml:",flow"`
 	GrantIds                map[string]string
 }
 
 // Run runs the command.
-func (w *kmsGrantsList) Run() error {
+func (w *kmsGrantsList) Run(ctx context.Context) error {
 	database := store.NewFileStore(*w.filename)
 	values, err := database.Get(*w.name)
 	if err != nil {
@@ -38,18 +40,18 @@ func (w *kmsGrantsList) Run() error {
 	}
 	values = values.FilterByKeyManager(keymanager.KmsLabel)
 
-	aliases, err := resolveValuesToAliasesAndRegions(values)
+	aliases, err := resolveValuesToAliasesAndRegions(ctx, values)
 	if err != nil {
 		return err
 	}
 
 	output := make(map[string]map[string]grantsForOneAlias)
 	for aliasName, regions := range aliases {
-		mrk, err := NewMultiRegionKey(aliasName, regions, "")
+		mrk, err := NewMultiRegionKey(ctx, aliasName, regions, "")
 		if err != nil {
 			return err
 		}
-		regionGrants, err := mrk.GetGrantDetails()
+		regionGrants, err := mrk.GetGrantDetails(ctx)
 		if err != nil {
 			return err
 		}

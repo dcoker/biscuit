@@ -1,14 +1,17 @@
 package awskms
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"sync"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/kms"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
+	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	myAWS "github.com/dcoker/biscuit/internal/aws"
 )
 
@@ -32,7 +35,7 @@ func (r *regionSpecificInfo) Error() string {
 }
 
 // NewMultiRegionKey constructs a MultiRegionKey.
-func NewMultiRegionKey(aliasName string, regions []string, forceRegion string) (*MultiRegionKey, error) {
+func NewMultiRegionKey(ctx context.Context, aliasName string, regions []string, forceRegion string) (*MultiRegionKey, error) {
 	mrk := &MultiRegionKey{aliasName: aliasName, regions: regions, regionToID: make(map[string]string)}
 	results := make(chan regionSpecificInfo, len(regions))
 	var wg sync.WaitGroup
@@ -41,8 +44,9 @@ func NewMultiRegionKey(aliasName string, regions []string, forceRegion string) (
 		go func(region string) {
 			defer wg.Done()
 			output := regionSpecificInfo{region: region}
-			client := kmsHelper{kms.New(myAWS.NewSession(region))}
-			keyID, policy, err := client.GetAliasTargetAndPolicy(aliasName)
+			cfg := myAWS.MustNewConfig(ctx, config.WithRegion(region))
+			client := kmsHelper{kms.NewFromConfig(cfg)}
+			keyID, policy, err := client.GetAliasTargetAndPolicy(ctx, aliasName)
 			if err != nil {
 				output.err = err
 			} else {
@@ -89,15 +93,16 @@ func NewMultiRegionKey(aliasName string, regions []string, forceRegion string) (
 }
 
 // SetKeyPolicy sets a new Key Policy.
-func (m *MultiRegionKey) SetKeyPolicy(policy string) error {
+func (m *MultiRegionKey) SetKeyPolicy(ctx context.Context, policy string) error {
 	errs := make(regionErrorCollector, len(m.regions))
 	var wg sync.WaitGroup
 	for _, region := range m.regions {
 		wg.Add(1)
 		go func(region string) {
 			defer wg.Done()
-			client := kmsHelper{kms.New(myAWS.NewSession(region))}
-			if _, err := client.PutKeyPolicy(&kms.PutKeyPolicyInput{
+			cfg := myAWS.MustNewConfig(ctx, config.WithRegion(region))
+			client := kmsHelper{kms.NewFromConfig(cfg)}
+			if _, err := client.PutKeyPolicy(ctx, &kms.PutKeyPolicyInput{
 				KeyId:      aws.String(m.regionToID[region]),
 				PolicyName: aws.String("default"),
 				Policy:     &policy}); err != nil {
@@ -112,11 +117,11 @@ func (m *MultiRegionKey) SetKeyPolicy(policy string) error {
 
 type getGrantsResults struct {
 	region string
-	grants []*kms.GrantListEntry
+	grants []types.GrantListEntry
 }
 
 // GetGrantDetails returns a list of grants for each region.
-func (m *MultiRegionKey) GetGrantDetails() (map[string][]*kms.GrantListEntry, error) {
+func (m *MultiRegionKey) GetGrantDetails(ctx context.Context) (map[string][]types.GrantListEntry, error) {
 	errs := make(regionErrorCollector, len(m.regions))
 	allGrants := make(chan getGrantsResults, len(m.regions))
 	var wg sync.WaitGroup
@@ -124,20 +129,28 @@ func (m *MultiRegionKey) GetGrantDetails() (map[string][]*kms.GrantListEntry, er
 		wg.Add(1)
 		go func(region string) {
 			defer wg.Done()
-			client := kmsHelper{kms.New(myAWS.NewSession(region))}
-			var grants []*kms.GrantListEntry
-			if err := client.ListGrantsPages(
-				&kms.ListGrantsInput{KeyId: aws.String(m.regionToID[region])},
-				func(p *kms.ListGrantsResponse, last bool) bool {
-					for _, grant := range p.Grants {
-						if grant.Name != nil && strings.HasPrefix(*grant.Name, GrantPrefix) {
-							grants = append(grants, grant)
-						}
+			cfg := myAWS.MustNewConfig(ctx, config.WithRegion(region))
+			client := kmsHelper{kms.NewFromConfig(cfg)}
+			var grants []types.GrantListEntry
+
+			p := kms.NewListGrantsPaginator(client, &kms.ListGrantsInput{
+				KeyId: aws.String(m.regionToID[region]),
+			})
+			for p.HasMorePages() {
+				output, err := p.NextPage(ctx)
+
+				if err != nil {
+					errs <- regionError{region, err}
+					continue
+
+				}
+
+				for _, grant := range output.Grants {
+					if grant.Name != nil && strings.HasPrefix(*grant.Name, GrantPrefix) {
+						grants = append(grants, grant)
 					}
-					return true
-				}); err != nil {
-				errs <- regionError{region, err}
-				return
+
+				}
 			}
 			allGrants <- getGrantsResults{region, grants}
 		}(region)
@@ -149,7 +162,7 @@ func (m *MultiRegionKey) GetGrantDetails() (map[string][]*kms.GrantListEntry, er
 		return nil, err
 	}
 
-	regionGrants := make(map[string][]*kms.GrantListEntry)
+	regionGrants := make(map[string][]types.GrantListEntry)
 	for grants := range allGrants {
 		regionGrants[grants.region] = grants.grants
 	}
@@ -164,7 +177,7 @@ type addGrantResults struct {
 }
 
 // AddGrant adds a grant to all of the underlying regions. Returns a map of region -> grant.
-func (m *MultiRegionKey) AddGrant(grant kms.CreateGrantInput) (map[string]kms.CreateGrantOutput, error) {
+func (m *MultiRegionKey) AddGrant(ctx context.Context, grant kms.CreateGrantInput) (map[string]kms.CreateGrantOutput, error) {
 	results := make(chan addGrantResults, len(m.regions))
 	var wg sync.WaitGroup
 	for _, region := range m.regions {
@@ -172,8 +185,9 @@ func (m *MultiRegionKey) AddGrant(grant kms.CreateGrantInput) (map[string]kms.Cr
 		go func(region string, grant kms.CreateGrantInput) {
 			defer wg.Done()
 			grant.KeyId = aws.String(m.regionToID[region])
-			kmsClient := kms.New(myAWS.NewSession(region))
-			createGrantOutput, err := kmsClient.CreateGrant(&grant)
+			cfg := myAWS.MustNewConfig(ctx)
+			kmsClient := kms.NewFromConfig(cfg)
+			createGrantOutput, err := kmsClient.CreateGrant(ctx, &grant)
 			if err != nil {
 				results <- addGrantResults{region: region, err: err}
 				return
@@ -196,29 +210,35 @@ func (m *MultiRegionKey) AddGrant(grant kms.CreateGrantInput) (map[string]kms.Cr
 }
 
 // RetireGrant retires a grant in all regions.
-func (m *MultiRegionKey) RetireGrant(name string) error {
+func (m *MultiRegionKey) RetireGrant(ctx context.Context, name string) error {
 	results := make(regionErrorCollector, len(m.regions))
 	var wg sync.WaitGroup
 	for _, region := range m.regions {
 		wg.Add(1)
 		go func(region string) {
 			defer wg.Done()
-			kmsClient := kms.New(myAWS.NewSession(region))
-			// Find GrantID in this region
+			cfg := myAWS.MustNewConfig(ctx, config.WithRegion(region))
+			kmsClient := kms.NewFromConfig(cfg)
+
 			var grantID *string
-			if err := kmsClient.ListGrantsPages(&kms.ListGrantsInput{
-				KeyId: aws.String(m.regionToID[region])},
-				func(p *kms.ListGrantsResponse, last bool) bool {
-					for _, grant := range p.Grants {
-						if grant.Name != nil && *grant.Name == name {
-							grantID = grant.GrantId
-							return false
-						}
+			p := kms.NewListGrantsPaginator(kmsClient, &kms.ListGrantsInput{
+
+				KeyId: aws.String(m.regionToID[region]),
+			})
+			for p.HasMorePages() {
+				output, err := p.NextPage(ctx)
+
+				if err != nil {
+					results <- regionError{Region: region, Err: err}
+				}
+				for _, grant := range output.Grants {
+					if grant.Name != nil && *grant.Name == name {
+						grantID = grant.GrantId
 					}
-					return true
-				}); err != nil {
-				results <- regionError{Region: region, Err: err}
-				return
+				}
+				if grantID != nil {
+					break
+				}
 			}
 			if grantID == nil {
 				results <- regionError{Region: region, Err: errors.New("Grant not found.")}
@@ -226,7 +246,7 @@ func (m *MultiRegionKey) RetireGrant(name string) error {
 			}
 
 			// Revoke by GrantID
-			_, err := kmsClient.RevokeGrant(&kms.RevokeGrantInput{KeyId: aws.String(m.regionToID[region]),
+			_, err := kmsClient.RevokeGrant(ctx, &kms.RevokeGrantInput{KeyId: aws.String(m.regionToID[region]),
 				GrantId: grantID})
 			results <- regionError{Region: region, Err: err}
 		}(region)

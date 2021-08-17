@@ -1,52 +1,46 @@
 package awskms
 
 import (
+	"context"
 	"fmt"
+	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
-	myAWS "github.com/dcoker/biscuit/internal/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	"github.com/dcoker/biscuit/internal/aws"
 )
 
 type cloudformationStack struct {
 	region,
 	stackName string
-	params       map[string]string
+	params       []types.Parameter
 	templateBody *string
 	templateURL  *string
 }
 
-func (s *cloudformationStack) parameterList() (output []*cloudformation.Parameter) {
-	for key, value := range s.params {
-		output = append(output,
-			&cloudformation.Parameter{
-				ParameterKey:   aws.String(key),
-				ParameterValue: aws.String(value),
-			})
-	}
-	return
-}
-
-func (s *cloudformationStack) createAndWait() (map[string]string, error) {
-	cfclient := cloudformation.New(myAWS.NewSession(s.region))
+func (s *cloudformationStack) createAndWait(ctx context.Context) (map[string]string, error) {
+	cfg := aws.MustNewConfig(ctx, config.WithRegion(s.region))
+	cfclient := cloudformation.NewFromConfig(cfg)
 	createStackInput := &cloudformation.CreateStackInput{
 		StackName:    &s.stackName,
-		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
-		OnFailure:    aws.String("ROLLBACK"),
-		Parameters:   s.parameterList(),
+		Capabilities: []types.Capability{types.CapabilityCapabilityIam},
+		OnFailure:    types.OnFailureRollback,
+		Parameters:   s.params,
 		TemplateBody: s.templateBody,
 		TemplateURL:  s.templateURL,
 	}
-	createStackOutput, err := cfclient.CreateStack(createStackInput)
+	createStackOutput, err := cfclient.CreateStack(ctx, createStackInput)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Printf("%s: Waiting for CloudFormation stack %s.\n", s.region, *createStackOutput.StackId)
 	describeStackInput := &cloudformation.DescribeStacksInput{StackName: createStackOutput.StackId}
-	if err := cfclient.WaitUntilStackCreateComplete(describeStackInput); err != nil {
+	waiter := cloudformation.NewStackCreateCompleteWaiter(cfclient)
+	if err := waiter.Wait(ctx, describeStackInput, 2*time.Hour); err != nil {
 		return nil, err
 	}
-	describeStackOutput, err := cfclient.DescribeStacks(&cloudformation.DescribeStacksInput{
+	describeStackOutput, err := cfclient.DescribeStacks(ctx, &cloudformation.DescribeStacksInput{
 		StackName: createStackOutput.StackId})
 	if err != nil {
 		return nil, err

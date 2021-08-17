@@ -2,6 +2,7 @@ package awskms
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha1"
 	"encoding/gob"
 	"encoding/hex"
@@ -9,9 +10,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/kms"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
+	"github.com/aws/aws-sdk-go-v2/service/kms/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	myAWS "github.com/dcoker/biscuit/internal/aws"
 	"github.com/dcoker/biscuit/keymanager"
 	"github.com/dcoker/biscuit/shared"
@@ -24,7 +27,7 @@ type kmsGrantsCreate struct {
 	granteePrincipal,
 	retiringPrincipal,
 	filename *string
-	operations *[]string
+	operations []types.GrantOperation
 	allNames   *bool
 }
 
@@ -55,7 +58,7 @@ type grantDetails struct {
 }
 
 // Run runs the command.
-func (w *kmsGrantsCreate) Run() error {
+func (w *kmsGrantsCreate) Run(ctx context.Context) error {
 	database := store.NewFileStore(*w.filename)
 	values, err := database.Get(*w.name)
 	if err != nil {
@@ -63,28 +66,28 @@ func (w *kmsGrantsCreate) Run() error {
 	}
 	values = values.FilterByKeyManager(keymanager.KmsLabel)
 
-	aliases, err := resolveValuesToAliasesAndRegions(values)
+	aliases, err := resolveValuesToAliasesAndRegions(ctx, values)
 	if err != nil {
 		return err
 	}
 
-	granteeArn, retireeArn, err := resolveGranteeArns(*w.granteePrincipal, *w.retiringPrincipal)
+	granteeArn, retireeArn, err := resolveGranteeArns(ctx, *w.granteePrincipal, *w.retiringPrincipal)
 
 	// The template from which grants in each region are created.
 	createGrantInput := kms.CreateGrantInput{
-		Operations:       aws.StringSlice(*w.operations),
+		Operations:       w.operations,
 		GranteePrincipal: &granteeArn,
 	}
 	if !*w.allNames {
-		createGrantInput.Constraints = &kms.GrantConstraints{
-			EncryptionContextSubset: map[string]*string{"SecretName": w.name},
+		createGrantInput.Constraints = &types.GrantConstraints{
+			EncryptionContextSubset: map[string]string{"SecretName": *w.name},
 		}
 	}
 	if len(retireeArn) > 0 {
 		createGrantInput.RetiringPrincipal = &retireeArn
 	}
 
-	grantName, err := computeGrantName(createGrantInput)
+	grantName, err := computeGrantName(ctx, createGrantInput)
 	if err != nil {
 		return err
 	}
@@ -95,11 +98,11 @@ func (w *kmsGrantsCreate) Run() error {
 		Aliases: make(map[string]map[string]grantDetails),
 	}
 	for alias, regionList := range aliases {
-		mrk, err := NewMultiRegionKey(alias, regionList, "")
+		mrk, err := NewMultiRegionKey(ctx, alias, regionList, "")
 		if err != nil {
 			return err
 		}
-		results, err := mrk.AddGrant(createGrantInput)
+		results, err := mrk.AddGrant(ctx, createGrantInput)
 		if err != nil {
 			return err
 		}
@@ -115,8 +118,10 @@ func (w *kmsGrantsCreate) Run() error {
 	return nil
 }
 
-func computeGrantName(input kms.CreateGrantInput) (string, error) {
-	callerIdentity, err := sts.New(myAWS.NewSession("")).GetCallerIdentity(nil)
+func computeGrantName(ctx context.Context, input kms.CreateGrantInput) (string, error) {
+	cfg := myAWS.MustNewConfig(ctx)
+	stsClient := sts.NewFromConfig(cfg)
+	callerIdentity, err := stsClient.GetCallerIdentity(ctx, nil)
 	if err != nil {
 		return "", err
 	}
@@ -131,7 +136,7 @@ func computeGrantName(input kms.CreateGrantInput) (string, error) {
 	return GrantPrefix + hex.EncodeToString(hashed[:])[:10], nil
 }
 
-func resolveValuesToAliasesAndRegions(values store.ValueList) (map[string][]string, error) {
+func resolveValuesToAliasesAndRegions(ctx context.Context, values store.ValueList) (map[string][]string, error) {
 	// The KeyID field may refer to a key/ or alias/ ARN. We need to resolve the alias for any key/ ARN
 	// so that we can act on them across multiple regions. This loop resolves key/ ARNs into their appropriate
 	// aliases, and maintains a list of regions for each alias.
@@ -144,9 +149,9 @@ func resolveValuesToAliasesAndRegions(values store.ValueList) (map[string][]stri
 		if arn.IsKmsAlias() {
 			aliases["alias/"+arn.Resource] = append(aliases["alias/"+arn.Resource], arn.Region)
 		} else if arn.IsKmsKey() {
-			region := arn.Region
-			client := kmsHelper{kms.New(myAWS.NewSession(region))}
-			alias, err := client.GetAliasByKeyID(arn.Resource)
+			cfg := myAWS.MustNewConfig(ctx, config.WithRegion(arn.Region))
+			client := kmsHelper{kms.NewFromConfig(cfg)}
+			alias, err := client.GetAliasByKeyID(ctx, arn.Resource)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "%s: Unable to find an alias for this key: %s\n", v.KeyID, err)
 				return nil, err
@@ -159,9 +164,10 @@ func resolveValuesToAliasesAndRegions(values store.ValueList) (map[string][]stri
 	return aliases, nil
 }
 
-func resolveGranteeArns(granteePrincipal, retiringPrincipal string) (string, string, error) {
-	stsClient := sts.New(myAWS.NewSession(""))
-	callerIdentity, err := stsClient.GetCallerIdentity(nil)
+func resolveGranteeArns(ctx context.Context, granteePrincipal, retiringPrincipal string) (string, string, error) {
+	cfg := myAWS.MustNewConfig(ctx)
+	stsClient := sts.NewFromConfig(cfg)
+	callerIdentity, err := stsClient.GetCallerIdentity(ctx, nil)
 	if err != nil {
 		return "", "", err
 	}

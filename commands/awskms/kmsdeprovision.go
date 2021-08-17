@@ -1,13 +1,16 @@
 package awskms
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"os"
 	"sync"
 
-	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/kms"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
 	myAWS "github.com/dcoker/biscuit/internal/aws"
 	"github.com/dcoker/biscuit/shared"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -30,14 +33,14 @@ func NewKmsDeprovision(c *kingpin.CmdClause) shared.Command {
 }
 
 // Run the command.
-func (w *kmsDeprovision) Run() error {
+func (w *kmsDeprovision) Run(ctx context.Context) error {
 	var failure error
 	var wg sync.WaitGroup
 	for _, region := range *w.regions {
 		wg.Add(1)
 		go func(region string) {
 			defer wg.Done()
-			if err := w.deprovisionOneRegion(region); err != nil {
+			if err := w.deprovisionOneRegion(ctx, region); err != nil {
 				fmt.Fprintf(os.Stderr, "%s: error: %s\n", region, err)
 				failure = err
 			}
@@ -51,13 +54,13 @@ func (w *kmsDeprovision) Run() error {
 	return failure
 }
 
-func (w *kmsDeprovision) deprovisionOneRegion(region string) error {
+func (w *kmsDeprovision) deprovisionOneRegion(ctx context.Context, region string) error {
+	cfg := myAWS.MustNewConfig(ctx, config.WithRegion(region))
 	aliasName := kmsAliasName(*w.label)
 	stackName := cfStackName(*w.label)
 	fmt.Printf("%s: Searching for label '%s'...\n", region, *w.label)
-	var foundAlias *kms.AliasListEntry
-	kmsClient := kmsHelper{kms.New(myAWS.NewSession(region))}
-	foundAlias, err := kmsClient.GetAliasByName(aliasName)
+	kmsClient := kmsHelper{kms.NewFromConfig(cfg)}
+	foundAlias, err := kmsClient.GetAliasByName(ctx, aliasName)
 	if err != nil {
 		return err
 	}
@@ -67,14 +70,14 @@ func (w *kmsDeprovision) deprovisionOneRegion(region string) error {
 		fmt.Printf("%s: Found alias %s for %s\n", region, aliasName, *foundAlias.TargetKeyId)
 		if *w.destructive {
 			fmt.Printf("%s: Deleting alias...\n", region)
-			if _, err := kmsClient.DeleteAlias(&kms.DeleteAliasInput{AliasName: foundAlias.AliasName}); err != nil {
+			if _, err := kmsClient.DeleteAlias(ctx, &kms.DeleteAliasInput{AliasName: foundAlias.AliasName}); err != nil {
 				return err
 			}
 			fmt.Printf("%s: ... alias deleted.\n", region)
 		}
 	}
 
-	exists, err := checkCloudFormationStackExists(stackName, region)
+	exists, err := checkCloudFormationStackExists(ctx, stackName, region)
 	if err != nil {
 		return err
 	}
@@ -84,12 +87,14 @@ func (w *kmsDeprovision) deprovisionOneRegion(region string) error {
 	}
 	fmt.Printf("%s: Found stack: %s\n", region, stackName)
 	if *w.destructive {
-		cfclient := cloudformation.New(myAWS.NewSession(region))
+		cfg := myAWS.MustNewConfig(ctx, config.WithRegion(region))
+		cfclient := cloudformation.NewFromConfig(cfg)
 		fmt.Printf("%s: Deleting CloudFormation stack. This may take a while...\n", region)
-		if _, err := cfclient.DeleteStack(&cloudformation.DeleteStackInput{StackName: &stackName}); err != nil {
+		if _, err := cfclient.DeleteStack(ctx, &cloudformation.DeleteStackInput{StackName: &stackName}); err != nil {
 			return err
 		}
-		if err := cfclient.WaitUntilStackDeleteComplete(&cloudformation.DescribeStacksInput{StackName: &stackName}); err != nil {
+		waiter := cloudformation.NewStackDeleteCompleteWaiter(cfclient)
+		if err := waiter.Wait(ctx, &cloudformation.DescribeStacksInput{StackName: &stackName}, 2*time.Hour); err != nil {
 			return err
 		}
 		fmt.Printf("%s: ... stack deleted.\n", region)

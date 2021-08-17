@@ -1,57 +1,65 @@
 package awskms
 
 import (
+	"context"
+	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/kms"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
+	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 )
 
 type kmsHelper struct {
-	*kms.KMS
+	*kms.Client
 }
 
-func (k *kmsHelper) GetAliasByName(aliasName string) (*kms.AliasListEntry, error) {
-	var foundAlias *kms.AliasListEntry
-	err := k.ListAliasesPages(nil, func(input *kms.ListAliasesOutput, _ bool) bool {
-		for _, alias := range input.Aliases {
+func (k *kmsHelper) GetAliasByName(ctx context.Context, aliasName string) (*types.AliasListEntry, error) {
+	p := kms.NewListAliasesPaginator(k, &kms.ListAliasesInput{})
+	for p.HasMorePages() {
+		output, err := p.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("could not retrieve aliases")
+		}
+		for _, alias := range output.Aliases {
 			if *alias.AliasName == aliasName {
-				foundAlias = alias
-				return false
-			}
-		}
-		return true
-	})
+				return &alias, nil
 
-	return foundAlias, err
+			}
+
+		}
+	}
+
+	return nil, nil
 }
 
-func (k *kmsHelper) GetAliasByKeyID(keyID string) (string, error) {
-	var foundAlias *kms.AliasListEntry
-	err := k.ListAliasesPages(nil, func(input *kms.ListAliasesOutput, _ bool) bool {
-		for _, alias := range input.Aliases {
-			if strings.HasPrefix(*alias.AliasName, AliasPrefix) && *alias.TargetKeyId == keyID {
-				foundAlias = alias
-				return false
-			}
+func (k *kmsHelper) GetAliasByKeyID(ctx context.Context, keyID string) (string, error) {
+	p := kms.NewListAliasesPaginator(k, &kms.ListAliasesInput{})
+	for p.HasMorePages() {
+		output, err := p.NextPage(ctx)
+		if err != nil {
+			return "", fmt.Errorf("could not retrieve aliases")
 		}
-		return true
-	})
-	if foundAlias != nil {
-		return *foundAlias.AliasName, err
+		for _, alias := range output.Aliases {
+			if strings.HasPrefix(*alias.AliasName, AliasPrefix) && *alias.TargetKeyId == keyID {
+				return *alias.AliasName, nil
+			}
+
+		}
 	}
+
 	return "", &errNoAliasFoundForKey{keyID}
 }
 
-func (k *kmsHelper) GetAliasTargetAndPolicy(aliasName string) (string, string, error) {
-	alias, err := k.GetAliasByName(aliasName)
+func (k *kmsHelper) GetAliasTargetAndPolicy(ctx context.Context, aliasName string) (string, string, error) {
+	alias, err := k.GetAliasByName(ctx, aliasName)
 	if err != nil {
 		return "", "", err
 	}
 	if alias == nil {
 		return "", "", &errAliasNotFound{aliasName}
 	}
-	policyOutput, err := k.GetKeyPolicy(&kms.GetKeyPolicyInput{KeyId: alias.TargetKeyId,
+	policyOutput, err := k.GetKeyPolicy(ctx, &kms.GetKeyPolicyInput{KeyId: alias.TargetKeyId,
 		PolicyName: aws.String("default")})
 	if err != nil {
 		return "", "", err

@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/dcoker/biscuit/shared"
@@ -18,7 +19,7 @@ func NewList(c *kingpin.CmdClause) shared.Command {
 }
 
 // Run runs the command.
-func (r *list) Run() error {
+func (r *list) Run(ctx context.Context) error {
 	database := store.NewFileStore(*r.filename)
 
 	entries, err := database.GetAll()

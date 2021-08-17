@@ -1,6 +1,7 @@
 package awskms
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -9,11 +10,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/cloudformation"
-	"github.com/aws/aws-sdk-go/service/kms"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation"
+	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/aws/smithy-go"
 	myAWS "github.com/dcoker/biscuit/internal/aws"
 	"github.com/dcoker/biscuit/keymanager"
 	"github.com/dcoker/biscuit/shared"
@@ -81,8 +84,8 @@ func NewKmsInit(c *kingpin.CmdClause, keyCloudformationTemplate string) shared.C
 }
 
 // Run runs the command.
-func (w *kmsInit) Run() error {
-	regionKeys, err := w.discoverOrCreateKeys()
+func (w *kmsInit) Run(ctx context.Context) error {
+	regionKeys, err := w.discoverOrCreateKeys(ctx)
 	if err != nil {
 		return err
 	}
@@ -128,21 +131,22 @@ func (w *kmsInit) Run() error {
 	return database.Put(store.KeyTemplateName, updatedTemplate)
 }
 
-func collectRegionInfo(stackName, keyAlias string, regions []string) (map[string]string, []string, error) {
+func collectRegionInfo(ctx context.Context, stackName, keyAlias string, regions []string) (map[string]string, []string, error) {
 	regionErrors := make(map[string][]error)
 	regionKeys := make(map[string]string)
 	var regionsMissing []string
 
+	fmt.Println("Still Running")
 	for _, region := range regions {
 		var keyExists, stackExists bool
 
-		if exists, err := checkCloudFormationStackExists(stackName, region); err != nil {
+		if exists, err := checkCloudFormationStackExists(ctx, stackName, region); err != nil {
 			regionErrors[region] = append(regionErrors[region], err)
 		} else {
 			stackExists = exists
 		}
 
-		if regionKey, err := checkKmsKeyExists(keyAlias, region); err != nil {
+		if regionKey, err := checkKmsKeyExists(ctx, keyAlias, region); err != nil {
 			regionErrors[region] = append(regionErrors[region], err)
 		} else if len(regionKey) > 0 {
 			keyExists = true
@@ -173,59 +177,60 @@ func collectRegionInfo(stackName, keyAlias string, regions []string) (map[string
 	return regionKeys, regionsMissing, err
 }
 
-func checkCloudFormationStackExists(stackName, region string) (bool, error) {
-	cfclient := cloudformation.New(myAWS.NewSession(region))
-	_, err := cfclient.DescribeStacks(&cloudformation.DescribeStacksInput{
+func checkCloudFormationStackExists(ctx context.Context, stackName, region string) (bool, error) {
+	cfg := myAWS.MustNewConfig(ctx, config.WithRegion(region))
+	cfclient := cloudformation.NewFromConfig(cfg)
+	_, err := cfclient.DescribeStacks(ctx, &cloudformation.DescribeStacksInput{
 		StackName: aws.String(stackName),
 	})
-	if err == nil {
-		return true, nil
-	}
-	if awsErr, ok := err.(awserr.Error); ok {
-		if awsErr.Code() == "ValidationError" &&
-			strings.Contains(awsErr.Message(), "does not exist") {
-			return false, nil
+	if err != nil {
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) {
+			if apiErr.ErrorCode() == "ValidationError" &&
+				strings.Contains(apiErr.ErrorMessage(), "does not exist") {
+				return false, nil
+			}
+
 		}
+		return false, err
 	}
-	return false, fmt.Errorf("%s", err)
+	return true, nil
 }
 
-func checkKmsKeyExists(keyAlias, region string) (string, error) {
-	var foundAliasArn string
-	kmsClient := kms.New(myAWS.NewSession(region))
-	var callbackErr error
-	fp := func(p *kms.ListAliasesOutput, lastPage bool) bool {
-		for _, aliasRecord := range p.Aliases {
+func checkKmsKeyExists(ctx context.Context, keyAlias, region string) (string, error) {
+	cfg := myAWS.MustNewConfig(ctx, config.WithRegion(region))
+	kmsClient := kms.NewFromConfig(cfg)
+	p := kms.NewListAliasesPaginator(kmsClient, &kms.ListAliasesInput{})
+	for p.HasMorePages() {
+		output, err := p.NextPage(ctx)
+		if err != nil {
+			return "", fmt.Errorf("could not list aliases: %w", err)
+		}
+
+		for _, aliasRecord := range output.Aliases {
 			if *aliasRecord.AliasName != keyAlias {
 				continue
 			}
-			keyDetails, err := kmsClient.DescribeKey(&kms.DescribeKeyInput{KeyId: aliasRecord.TargetKeyId})
+			keyDetails, err := kmsClient.DescribeKey(ctx, &kms.DescribeKeyInput{KeyId: aliasRecord.TargetKeyId})
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "DescribeKey failed: %s", err)
-				callbackErr = err
-				return false
+				return "", fmt.Errorf("described key faild: %w", err)
 			}
-			if !*keyDetails.KeyMetadata.Enabled {
-				callbackErr = fmt.Errorf(
-					"There is a KMS key in %s with a matching alias, but the key is "+
-						"disabled. If the alias is "+
-						"no longer in use, you may try again after deleting the alias"+
-						". To delete the alias, run: "+
+			if !keyDetails.KeyMetadata.Enabled {
+				return "", fmt.Errorf(
+					"there is a KMS key in %s with a matching alias, but the key is "+
+						"disabled. If the alias is no longer in use, "+
+						"you may try again after deleting the alias. "+
+						"To delete the alias, run: "+
 						"aws --region "+
-						"%s kms delete-alias --alias-name %s\n", region, region, keyAlias)
-				return false
+						"%s kms delete-alias --alias-name %s", region, region, keyAlias)
 			}
-			foundAliasArn = *aliasRecord.AliasArn
+			return *aliasRecord.AliasArn, nil
 		}
-		return true
 	}
-	if err := kmsClient.ListAliasesPages(nil, fp); err != nil {
-		return foundAliasArn, err
-	}
-	return foundAliasArn, callbackErr
+	return "", nil
 }
 
-func (w *kmsInit) discoverOrCreateKeys() (map[string]string, error) {
+func (w *kmsInit) discoverOrCreateKeys(ctx context.Context) (map[string]string, error) {
 	fmt.Printf("Checking %s for the '%s' label.\n",
 		friendlyJoin(*w.regions),
 		*w.label)
@@ -233,7 +238,7 @@ func (w *kmsInit) discoverOrCreateKeys() (map[string]string, error) {
 	aliasName := kmsAliasName(*w.label)
 	stackName := cfStackName(*w.label)
 
-	existingAliases, regionsMissingKeys, err := collectRegionInfo(stackName, aliasName, *w.regions)
+	existingAliases, regionsMissingKeys, err := collectRegionInfo(ctx, stackName, aliasName, *w.regions)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +257,7 @@ func (w *kmsInit) discoverOrCreateKeys() (map[string]string, error) {
 		fmt.Printf("Found %d pre-existing keys.\n", len(existingAliases))
 	}
 	if len(existingAliases) == 0 || *w.createMissingKeys {
-		finalAdminArns, finalUserArns, err := w.constructArns()
+		finalAdminArns, finalUserArns, err := w.constructArns(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -268,7 +273,7 @@ func (w *kmsInit) discoverOrCreateKeys() (map[string]string, error) {
 				defer wg.Done()
 				started := time.Now()
 				fmt.Printf("%s: Creating resources using CloudFormation. This may take a while.\n", region)
-				existingAliases[region], err = w.createKeyInRegion(region, stackName,
+				existingAliases[region], err = w.createKeyInRegion(ctx, region, stackName,
 					aliasName, finalAdminArns, finalUserArns)
 				if err != nil {
 					errs <- fmt.Errorf("%s: %s", region, err)
@@ -289,14 +294,14 @@ func (w *kmsInit) discoverOrCreateKeys() (map[string]string, error) {
 }
 
 // createKeyInRegion creates a key for a region and returns the Alias's ARN.
-func (w *kmsInit) createKeyInRegion(region, stackName, aliasName string, finalAdminArns, finalUserArns []string) (string, error) {
+func (w *kmsInit) createKeyInRegion(ctx context.Context, region, stackName, aliasName string, finalAdminArns, finalUserArns []string) (string, error) {
 	specs := cloudformationStack{
-		params: map[string]string{
-			"AdministratorPrincipals":            strings.Join(finalAdminArns, ","),
-			"UserPrincipals":                     strings.Join(finalUserArns, ","),
-			"KeyDescription":                     "Key used for securing secrets (" + *w.label + ").",
-			"CreateSimpleRoles":                  truefalse(*w.createSimpleRoles),
-			"AllowIAMPoliciesToControlKeyAccess": truefalse(!*w.disableIam),
+		params: []types.Parameter{
+			{ParameterKey: aws.String("AdministratorPrincipals"), ParameterValue: aws.String(strings.Join(finalAdminArns, ","))},
+			{ParameterKey: aws.String("UserPrincipals"), ParameterValue: aws.String(strings.Join(finalUserArns, ","))},
+			{ParameterKey: aws.String("KeyDescription"), ParameterValue: aws.String("Key used for securing secrets (" + *w.label + ").")},
+			{ParameterKey: aws.String("CreateSimpleRoles"), ParameterValue: aws.String(truefalse(*w.createSimpleRoles))},
+			{ParameterKey: aws.String("AllowIAMPoliciesToControlKeyAccess"), ParameterValue: aws.String(truefalse(!*w.disableIam))},
 		},
 		region:    region,
 		stackName: stackName,
@@ -306,7 +311,7 @@ func (w *kmsInit) createKeyInRegion(region, stackName, aliasName string, finalAd
 	} else {
 		specs.templateBody = &w.keyCloudformationTemplate
 	}
-	outputs, err := specs.createAndWait()
+	outputs, err := specs.createAndWait(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -315,20 +320,22 @@ func (w *kmsInit) createKeyInRegion(region, stackName, aliasName string, finalAd
 		return "", fmt.Errorf("Stack %s does not have an Output named KeyArn.", stackName)
 	}
 
-	aliasARN, err := createAlias(region, aliasName, keyArn)
+	aliasARN, err := createAlias(ctx, region, aliasName, keyArn)
 	return aliasARN, err
 }
 
-func createAlias(region, aliasName, keyArn string) (string, error) {
+func createAlias(ctx context.Context, region, aliasName, keyArn string) (string, error) {
 	fmt.Printf("%s: creating alias '%s' for key %s.\n", region, aliasName, keyArn)
-	client := kmsHelper{kms.New(myAWS.NewSession(""))}
-	if _, err := client.CreateAlias(&kms.CreateAliasInput{
+	cfg := myAWS.MustNewConfig(ctx, config.WithRegion(region))
+
+	client := kmsHelper{kms.NewFromConfig(cfg)}
+	if _, err := client.CreateAlias(ctx, &kms.CreateAliasInput{
 		TargetKeyId: aws.String(keyArn),
 		AliasName:   aws.String(aliasName)}); err != nil {
 		return "", err
 	}
 	fmt.Printf("%s: fetching ARN for the new alias.\n", region)
-	aliasListEntry, err := client.GetAliasByName(aliasName)
+	aliasListEntry, err := client.GetAliasByName(ctx, aliasName)
 	if err != nil {
 		return "", err
 	}
@@ -345,9 +352,10 @@ func truefalse(iff bool) string {
 	return "false"
 }
 
-func (w *kmsInit) constructArns() ([]string, []string, error) {
-	stsClient := sts.New(myAWS.NewSession(""))
-	callerIdentity, err := stsClient.GetCallerIdentity(nil)
+func (w *kmsInit) constructArns(ctx context.Context) ([]string, []string, error) {
+	cfg := myAWS.MustNewConfig(ctx)
+	stsClient := sts.NewFromConfig(cfg)
+	callerIdentity, err := stsClient.GetCallerIdentity(ctx, nil)
 	if err != nil {
 		return nil, nil, err
 	}

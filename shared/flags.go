@@ -1,6 +1,7 @@
 package shared
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -15,9 +16,9 @@ const (
 	ProgName = "biscuit"
 )
 
-// Command types have a Run() method.
+// Command types have a Run(ctx context.Context) method.
 type Command interface {
-	Run() error
+	Run(ctx context.Context) error
 }
 
 // CommaSeparatedList is a configurable flag.Value that parses a comma delimited string into a string array.

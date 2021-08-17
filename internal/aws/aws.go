@@ -1,27 +1,44 @@
 package aws
 
 import (
+	"context"
+	"fmt"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 )
 
-func NewSession(r string) *session.Session {
-	cfg := &aws.Config{}
-	if r != "" {
-		cfg.Region = aws.String(r)
+func NewConfig(ctx context.Context, optFns ...func(*config.LoadOptions) error) (aws.Config, error) {
+	if os.Getenv("BISCUIT_DEBUG") == "true" {
+		optFns = append(optFns, config.WithClientLogMode(aws.LogRequestWithBody|aws.LogResponseWithBody))
+		optFns = append(optFns, config.WithRetryer(func() aws.Retryer { return aws.NopRetryer{} }))
 	}
-
+	cfg, err := config.LoadDefaultConfig(ctx, optFns...)
+	if err != nil {
+		return aws.Config{}, fmt.Errorf("unable to load SDK config, %w", err)
+	}
 	endpoint := os.Getenv("AWS_ENDPOINT")
 	if endpoint != "" {
-		cfg.Endpoint = aws.String(endpoint)
+		cfg.EndpointResolver = aws.EndpointResolverFunc(awsEndpoint(endpoint))
 	}
+	return cfg, nil
+}
 
-	level := os.Getenv("BISCUIT_DEBUG")
-	if level == "true" {
-		cfg.WithLogLevel(aws.LogDebug)
+func MustNewConfig(ctx context.Context, optFns ...func(*config.LoadOptions) error) aws.Config {
+	cfg, err := NewConfig(ctx, optFns...)
+	if err != nil {
+		panic(err)
 	}
-	sess := session.New(cfg)
-	return sess
+	return cfg
+}
+
+func awsEndpoint(endpoint string) func(service, region string) (aws.Endpoint, error) {
+	return func(service, region string) (aws.Endpoint, error) {
+		return aws.Endpoint{
+			SigningRegion:     region,
+			URL:               endpoint,
+			HostnameImmutable: true,
+		}, nil
+	}
 }

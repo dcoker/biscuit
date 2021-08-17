@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"github.com/dcoker/biscuit/shared"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -72,7 +73,7 @@ const knownAwsKmsOperations = "Decrypt,Encrypt,GenerateDataKey,GenerateDataKeyWi
 	"ReEncryptTo,CreateGrant,RetireGrant"
 
 // OperationsFlag defines a flag for the list of AWS KMS operations
-func operationsFlag(cc *kingpin.CmdClause) *[]string {
+func operationsFlag(cc *kingpin.CmdClause) []types.GrantOperation {
 	name := "operations"
 	operationsList := strings.Split(knownAwsKmsOperations, ",")
 	fc := cc.Flag(name,
@@ -82,7 +83,11 @@ func operationsFlag(cc *kingpin.CmdClause) *[]string {
 		Default("Decrypt,RetireGrant")
 	val := (&shared.CommaSeparatedList{}).RestrictTo(operationsList...).Min(1).Name(name)
 	fc.SetValue(val)
-	return &val.V
+	ops := make([]types.GrantOperation, len(val.V))
+	for i, v := range val.V {
+		ops[i] = types.GrantOperation(v)
+	}
+	return ops
 }
 
 func regionsFlag(cc *kingpin.CmdClause) *[]string {
