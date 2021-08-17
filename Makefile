@@ -3,7 +3,6 @@ GOFLAGS := -v
 PKG := ./...
 TESTS := ".*"
 GOIMPORTS := goimports
-GOLINT := golint
 PROGNAME := biscuit
 VERSION := $(shell git describe --long --tags --always)
 GOVERSIONLDFLAG := -ldflags="-X main.Version=$(VERSION)"
@@ -25,7 +24,6 @@ doc.go: data
 .PHONY: check
 check:
 	$(GO) vet --all . 2>&1
-	$(GOLINT) $(PKG)
 
 .PHONY: fmt
 fmt:
