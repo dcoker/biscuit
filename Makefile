@@ -4,7 +4,6 @@ PKG := ./...
 TESTS := ".*"
 GOIMPORTS := ../../../../bin/goimports
 GOLINT := ../../../../bin/golint
-GLOCK := ../../../../bin/glock
 BINDATA := ../../../../bin/go-bindata
 PROGNAME := biscuit
 VERSION := $(shell git describe --long --tags --always)
@@ -13,21 +12,6 @@ GOVERSIONLDFLAG := -ldflags="-X main.Version=$(VERSION)"
 .PHONY: build
 build: doc.go bindata.go test
 	$(GO) install $(GOVERSIONLDFLAG) $(GOFLAGS)
-
-$(GLOCK):
-	go get -v github.com/robfig/glock
-
-.PHONY: glock-sync
-glock-sync: $(GLOCK)
-	$(GLOCK) sync github.com/dcoker/$(PROGNAME)
-
-.PHONY: glock-save
-glock-save: $(GLOCK)
-	$(GLOCK) save github.com/dcoker/$(PROGNAME)
-
-.PHONY: setup
-setup: $(GLOCK) glock-sync
-	$(GLOCK) install github.com/dcoker/$(PROGNAME)
 
 .PHONY: test
 test:
