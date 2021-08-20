@@ -9,13 +9,16 @@ if [ "${CONTINUOUS_INTEGRATION}" != "true" ]; then
   AWS_ACCESS_KEY_ID="$(aws configure --profile biscuit-testing get aws_access_key_id)"
   AWS_SECRET_ACCESS_KEY="$(aws configure --profile biscuit-testing get aws_secret_access_key)"
 fi
+# Test keys created with `biscuit kms init`.
+# user/cli-integration-test granted usage of keys via `biscuit kms edit-key-policy`.
+AWS_ACCOUNT=872957446280
 AWS_REGION=us-west-1
-KEY1=8a97cd86-54c8-4964-b9b3-4d5d6ae98139
-ARN1=arn:aws:kms:us-west-1:922329555442:key/${KEY1}
+KEY1=8be1cc5b-3c70-4295-acad-e497dd421961
+ARN1=arn:aws:kms:us-west-1:${AWS_ACCOUNT}:key/${KEY1}
 ARN1_REGION=us-west-1
-KEY2=0f809ad7-ecd3-41a3-9d21-923195530c8a
-ARN2=arn:aws:kms:us-west-2:922329555442:key/${KEY2}
-ARN2_REGION=us-west-2
+KEY2=37cca9a8-d2d0-43b8-9363-bb8320176cee
+ARN2=arn:aws:kms:us-west-1:${AWS_ACCOUNT}:key/${KEY2}
+ARN2_REGION=us-west-1
 
 function invoke_one() {
   docker run -t \
@@ -44,7 +47,7 @@ for one_test in 0*sh; do
 done
 echo ">> waiting"
 wait
-for test_log in ${RESULTS_DIR}/*.log; do
+for test_log in "${RESULTS_DIR}"/*.log; do
   echo -n "${test_log}: "
   if grep -q '+++++ PASSED' "${test_log}"; then
    echo PASSED
