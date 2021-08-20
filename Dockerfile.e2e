@@ -1,7 +1,9 @@
-FROM golang:1.7
-ADD GLOCKFILE src/github.com/dcoker/biscuit/
+FROM golang:1.16
 ADD Makefile src/github.com/dcoker/biscuit/
-WORKDIR src/github.com/dcoker/biscuit
-RUN make glock-sync
+RUN go install github.com/mitchellh/gox@v1.0.1
+WORKDIR /go/src/github.com/dcoker/biscuit
+ADD go.mod .
+ADD go.sum .
+RUN go mod download
 ADD . .
 RUN make build

@@ -2,41 +2,19 @@ GO ?= go
 GOFLAGS := -v
 PKG := ./...
 TESTS := ".*"
-GOIMPORTS := ../../../../bin/goimports
-GOLINT := ../../../../bin/golint
-GLOCK := ../../../../bin/glock
-BINDATA := ../../../../bin/go-bindata
+GOIMPORTS := goimports
 PROGNAME := biscuit
 VERSION := $(shell git describe --long --tags --always)
 GOVERSIONLDFLAG := -ldflags="-X main.Version=$(VERSION)"
 
 .PHONY: build
-build: doc.go bindata.go test
+build: doc.go test
 	$(GO) install $(GOVERSIONLDFLAG) $(GOFLAGS)
-
-$(GLOCK):
-	go get -v github.com/robfig/glock
-
-.PHONY: glock-sync
-glock-sync: $(GLOCK)
-	$(GLOCK) sync github.com/dcoker/$(PROGNAME)
-
-.PHONY: glock-save
-glock-save: $(GLOCK)
-	$(GLOCK) save github.com/dcoker/$(PROGNAME)
-
-.PHONY: setup
-setup: $(GLOCK) glock-sync
-	$(GLOCK) install github.com/dcoker/$(PROGNAME)
 
 .PHONY: test
 test:
-	$(GO) test $(GOFLAGS) -i $(PKG)
 	$(GO) test $(GOFLAGS) $(PKG)
-
-bindata.go: data
-	$(BINDATA) -o bindata.go -prefix data -ignore=\\.gitignore data/...
-	gofmt -s -w bindata.go
+	$(GO) test $(GOFLAGS) $(PKG)
 
 doc.go: data
 	/bin/echo -e '/*\n' > doc.go
@@ -45,8 +23,7 @@ doc.go: data
 
 .PHONY: check
 check:
-	$(GO) tool vet --all . 2>&1
-	$(GOLINT) $(PKG)
+	$(GO) vet --all . 2>&1
 
 .PHONY: fmt
 fmt:
@@ -55,7 +32,7 @@ fmt:
 
 .PHONY: clean
 clean:
-	rm doc.go bindata.go
+	rm doc.go
 	rm -f $(GOPATH)/bin/$(PROGNAME)
 	$(GO) clean $(GOFLAGS) -i $(PKG)
 

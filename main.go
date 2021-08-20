@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"fmt"
 	"os"
 
@@ -15,10 +16,13 @@ var (
 	Version = "n/a"
 )
 
+//go:embed data/*
+var fs embed.FS
+
 func main() {
 	os.Setenv("COLUMNS", "80") // hack to make --help output readable
 
-	app := kingpin.New(shared.ProgName, mustAsset(_usageTxt))
+	app := kingpin.New(shared.ProgName, mustAsset("data/usage.txt"))
 	app.Version(Version)
 	app.UsageTemplate(kingpin.LongHelpTemplate)
 	getFlags := app.Command("get", "Read a secret.")
@@ -27,13 +31,13 @@ func main() {
 	exportFlags := app.Command("export", "Print all secrets to stdout in plaintext YAML.")
 	kmsFlags := app.Command("kms", "AWS KMS-specific operations.")
 	kmsIDFlags := kmsFlags.Command("get-caller-identity", "Print the AWS credentials.")
-	kmsInitFlags := kmsFlags.Command("init", mustAsset(_kmsinitTxt))
+	kmsInitFlags := kmsFlags.Command("init", mustAsset("data/kmsinit.txt"))
 	kmsDeprovisionFlags := kmsFlags.Command("deprovision", "Deprovision AWS resources.")
-	kmsEditKeyPolicyFlags := kmsFlags.Command("edit-key-policy", mustAsset(_kmseditkeypolicyTxt))
+	kmsEditKeyPolicyFlags := kmsFlags.Command("edit-key-policy", mustAsset("data/kmseditkeypolicy.txt"))
 	kmsGrantsFlags := kmsFlags.Command("grants", "Manage KMS grants.")
-	kmsGrantsListFlags := kmsGrantsFlags.Command("list", mustAsset(_kmsgrantslistTxt))
-	kmsGrantsCreateFlags := kmsGrantsFlags.Command("create", mustAsset(_kmsgrantcreateTxt))
-	kmsGrantsRetireFlags := kmsGrantsFlags.Command("retire", mustAsset(_kmsgrantsretireTxt))
+	kmsGrantsListFlags := kmsGrantsFlags.Command("list", mustAsset("data/kmsgrantslist.txt"))
+	kmsGrantsCreateFlags := kmsGrantsFlags.Command("create", mustAsset("data/kmsgrantcreate.txt"))
+	kmsGrantsRetireFlags := kmsGrantsFlags.Command("retire", mustAsset("data/kmsgrantsretire.txt"))
 
 	getCommand := commands.NewGet(getFlags)
 	writeCommand := commands.NewPut(putFlags)
@@ -44,7 +48,7 @@ func main() {
 	kmsGrantsListCommand := awskms.NewKmsGrantsList(kmsGrantsListFlags)
 	kmsGrantsCreateCommand := awskms.NewKmsGrantsCreate(kmsGrantsCreateFlags)
 	kmsGrantsRetireCommand := awskms.NewKmsGrantsRetire(kmsGrantsRetireFlags)
-	kmsInitCommand := awskms.NewKmsInit(kmsInitFlags, mustAsset(_awskmsKeyTemplate))
+	kmsInitCommand := awskms.NewKmsInit(kmsInitFlags, mustAsset("data/awskms-key.template"))
 	kmsDeprovisionCommand := awskms.NewKmsDeprovision(kmsDeprovisionFlags)
 
 	behavior := kingpin.MustParse(app.Parse(os.Args[1:]))
@@ -90,8 +94,8 @@ func main() {
 	os.Exit(1)
 }
 
-func mustAsset(data []byte) string {
-	bytes, err := bindataRead(data, "")
+func mustAsset(filename string) string {
+	bytes, err := fs.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}
