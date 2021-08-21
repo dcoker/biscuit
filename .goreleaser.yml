@@ -1,0 +1,35 @@
+before:
+  hooks:
+    - go mod tidy
+builds:
+  -
+    binary: biscuit
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+      - 386
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+archives:
+-
+  name_template: "{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}"
+  replacements:
+    darwin: MacOS
+    linux: Linux
+    windows: Windows
+    amd64: 64bit
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
