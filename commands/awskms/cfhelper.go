@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
+	myAWS "github.com/dcoker/biscuit/internal/aws"
 )
 
 type cloudformationStack struct {
@@ -28,7 +28,7 @@ func (s *cloudformationStack) parameterList() (output []*cloudformation.Paramete
 }
 
 func (s *cloudformationStack) createAndWait() (map[string]string, error) {
-	cfclient := cloudformation.New(session.New(&aws.Config{Region: &s.region}))
+	cfclient := cloudformation.New(myAWS.NewSession(s.region))
 	createStackInput := &cloudformation.CreateStackInput{
 		StackName:    &s.stackName,
 		Capabilities: []*string{aws.String("CAPABILITY_IAM")},
