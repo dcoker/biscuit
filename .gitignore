@@ -160,5 +160,4 @@ Temporary Items
 /*.yml
 /*.yaml
 
-build_docker_cross
 !/.goreleaser.yml
