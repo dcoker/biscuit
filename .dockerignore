@@ -1,4 +1,3 @@
-build
-build_docker_cross
-*.yaml
-*.yml
+.git
+Dockerfile
+tests/*
