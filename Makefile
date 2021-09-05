@@ -56,3 +56,7 @@ docker-cross: docker-build
 		"rm -f build && ln -s /tmp/build/ build && make cross"
 
 
+.PHONY: localstack
+localstack:
+	docker network create localstack
+	docker run --name localstack --network localstack --rm -d -p 4566:4566 -p 4571:4571 localstack/localstack:0.12.17.5
