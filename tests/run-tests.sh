@@ -12,12 +12,14 @@ export AWS_REGION=us-west-1
 export REGION1=us-west-1
 export REGION2=us-west-2
 
+aws --region=${REGION1} kms delete-alias --alias-name alias/biscuit-default 2>/dev/null || echo "No alias exist"
 export AWS_ACCOUNT=$(aws --region=${REGION1} sts get-caller-identity | jq -r '.Account')
 export KEY1=$(aws --region=${REGION1} kms create-key | jq -r '.KeyMetadata.KeyId')
 export ARN1=arn:aws:kms:${REGION1}:${AWS_ACCOUNT}:key/${KEY1}
 aws --region=${REGION1} kms create-alias --alias-name alias/biscuit-default --target-key-id ${ARN1}
 
 
+aws --region=${REGION2} kms delete-alias --alias-name alias/biscuit-default 2>/dev/null || echo "No alias exist"
 export KEY2=$(aws --region=${REGION2} kms create-key | jq -r '.KeyMetadata.KeyId')
 export ARN2=arn:aws:kms:${REGION2}:${AWS_ACCOUNT}:key/${KEY2}
 aws --region=${REGION2} kms create-alias --alias-name alias/biscuit-default --target-key-id ${ARN2}
