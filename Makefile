@@ -14,7 +14,6 @@ build: doc.go test
 .PHONY: test
 test:
 	$(GO) test $(GOFLAGS) $(PKG)
-	$(GO) test $(GOFLAGS) $(PKG)
 
 doc.go: data
 	/bin/echo -e '/*\n' > doc.go
