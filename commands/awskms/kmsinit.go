@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
 	myAWS "github.com/dcoker/biscuit/internal/aws"
+	"github.com/dcoker/biscuit/internal/aws/arn"
 	stringsFunc "github.com/dcoker/biscuit/internal/strings"
 	"github.com/dcoker/biscuit/keymanager"
 	"github.com/dcoker/biscuit/shared"
@@ -362,51 +363,17 @@ func (w *kmsInit) constructArns(ctx context.Context) ([]string, []string, error)
 	}
 	awsAccountID := *callerIdentity.Account
 	fmt.Printf("Detected account ID #%s and that I am %s.\n", awsAccountID, *callerIdentity.Arn)
-	adminArns := cleanArnList(awsAccountID, *w.administratorArns+","+*callerIdentity.Arn)
+	adminArns := arn.CleanList(awsAccountID, *w.administratorArns+","+*callerIdentity.Arn)
 	if err := validateArnList(adminArns); err != nil {
 		return nil, nil, fmt.Errorf("Administrator ARNs: %s", err)
 	}
-	userArns := cleanArnList(awsAccountID, *w.userArns+","+*callerIdentity.Arn)
+	userArns := arn.CleanList(awsAccountID, *w.userArns+","+*callerIdentity.Arn)
 	if err := validateArnList(userArns); err != nil {
 		return nil, nil, fmt.Errorf("User ARNs: %s", err)
 	}
 	fmt.Printf("Administrative actions will be allowed by %s\n", adminArns)
 	fmt.Printf("User actions will be allowed by %s\n", userArns)
 	return adminArns, userArns, nil
-}
-
-func cleanArnList(accountID, arns string) []string {
-	cleaned := make(map[string]struct{})
-	for _, arn := range strings.Split(arns, ",") {
-		arn := cleanArn(accountID, arn)
-		if len(arn) > 0 {
-			cleaned[arn] = struct{}{}
-		}
-	}
-	return stringsetToList(cleaned)
-}
-
-func cleanArn(accountID, arn string) string {
-	arn = strings.TrimSpace(arn)
-	if len(arn) == 0 {
-		return ""
-	}
-	if strings.HasPrefix(arn, "arn:") {
-		return arn
-	} else if !(strings.HasPrefix(arn, "user/") || strings.HasPrefix(arn, "role/")) {
-		return fmt.Sprintf("arn:aws:iam::%s:user/%s", accountID, arn)
-	} else {
-		return fmt.Sprintf("arn:aws:iam::%s:%s", accountID, arn)
-	}
-}
-
-func stringsetToList(input map[string]struct{}) []string {
-	results := []string{}
-	for key := range input {
-		results = append(results, key)
-	}
-	sort.Strings(results)
-	return results
 }
 
 func validateArnList(arns []string) error {

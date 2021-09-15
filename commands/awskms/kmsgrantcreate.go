@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	myAWS "github.com/dcoker/biscuit/internal/aws"
+	"github.com/dcoker/biscuit/internal/aws/arn"
 	"github.com/dcoker/biscuit/internal/yaml"
 	"github.com/dcoker/biscuit/keymanager"
 	"github.com/dcoker/biscuit/shared"
@@ -143,7 +144,7 @@ func resolveValuesToAliasesAndRegions(ctx context.Context, values store.ValueLis
 	// aliases, and maintains a list of regions for each alias.
 	aliases := make(map[string][]string)
 	for _, v := range values {
-		arn, err := myAWS.NewARN(v.KeyID)
+		arn, err := arn.New(v.KeyID)
 		if err != nil {
 			return nil, err
 		}
@@ -172,10 +173,10 @@ func resolveGranteeArns(ctx context.Context, granteePrincipal, retiringPrincipal
 	if err != nil {
 		return "", "", err
 	}
-	granteeArn := cleanArn(*callerIdentity.Account, granteePrincipal)
+	granteeArn := arn.Clean(*callerIdentity.Account, granteePrincipal)
 	if len(granteeArn) == 0 {
 		return "", "", errors.New("grantee ARN must not be empty string")
 	}
-	retireeArn := cleanArn(*callerIdentity.Account, retiringPrincipal)
+	retireeArn := arn.Clean(*callerIdentity.Account, retiringPrincipal)
 	return granteeArn, retireeArn, nil
 }

@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/dcoker/biscuit/internal/aws"
+	"github.com/dcoker/biscuit/internal/aws/arn"
 	"github.com/dcoker/biscuit/keymanager"
 )
 
@@ -70,11 +70,11 @@ func lessWithRegionOrdering(ordering map[string]int, left Value, right Value) bo
 	if left.KeyManager != keymanager.KmsLabel {
 		return false
 	}
-	leftKey, err := aws.NewARN(left.KeyID)
+	leftKey, err := arn.New(left.KeyID)
 	if err != nil {
 		return false
 	}
-	rightKey, err := aws.NewARN(right.KeyID)
+	rightKey, err := arn.New(right.KeyID)
 	if err != nil {
 		return false
 	}
