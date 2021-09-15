@@ -1,4 +1,4 @@
-package algorithms
+package aesgcm256
 
 import (
 	"crypto/aes"
@@ -7,16 +7,12 @@ import (
 )
 
 const (
-	aesGcmLabel = "aesgcm256"
+	Name = "aesgcm256"
 )
-
-func init() {
-	registry[aesGcmLabel] = newAesGcm256
-}
 
 type aesGcm256 struct{}
 
-func newAesGcm256() Algorithm {
+func New() *aesGcm256 {
 	return &aesGcm256{}
 }
 
@@ -53,10 +49,6 @@ func (c *aesGcm256) Decrypt(key []byte, ciphertext []byte) ([]byte, error) {
 	nonce := ciphertext[len(ciphertext)-block.NonceSize():]
 	plaintext, err := block.Open(nil, nonce, ciphertext[:len(ciphertext)-block.NonceSize()], nil)
 	return plaintext, err
-}
-
-func (c *aesGcm256) Label() string {
-	return aesGcmLabel
 }
 
 func (c *aesGcm256) NeedsKey() bool {

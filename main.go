@@ -5,9 +5,14 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/aws/smithy-go"
+	"github.com/dcoker/biscuit/algorithms"
+	"github.com/dcoker/biscuit/algorithms/aesgcm256"
+	"github.com/dcoker/biscuit/algorithms/plain"
+	"github.com/dcoker/biscuit/algorithms/secretbox"
 	"github.com/dcoker/biscuit/commands"
 	"github.com/dcoker/biscuit/commands/awskms"
 	"github.com/dcoker/biscuit/shared"
@@ -21,9 +26,24 @@ var (
 //go:embed data/*
 var fs embed.FS
 
+func registerAlgorithms() error {
+	if err := algorithms.Register(secretbox.Name, secretbox.New()); err != nil {
+		return err
+	}
+	if err := algorithms.Register(plain.Name, plain.New()); err != nil {
+		return err
+	}
+	if err := algorithms.Register(aesgcm256.Name, aesgcm256.New()); err != nil {
+		return err
+	}
+	return nil
+}
+
 func main() {
 	os.Setenv("COLUMNS", "80") // hack to make --help output readable
-
+	if err := registerAlgorithms(); err != nil {
+		log.Fatal(err)
+	}
 	app := kingpin.New(shared.ProgName, mustAsset("data/usage.txt"))
 	app.Version(Version)
 	app.UsageTemplate(kingpin.LongHelpTemplate)

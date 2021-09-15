@@ -8,6 +8,7 @@ import (
 	"regexp"
 
 	"github.com/dcoker/biscuit/algorithms"
+	"github.com/dcoker/biscuit/algorithms/secretbox"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -145,11 +146,11 @@ func StringFlag(s kingpin.Settings, sv *StringValue) *string {
 func AlgorithmFlag(cc *kingpin.CmdClause) *string {
 	return cc.Flag("algorithm", "Encryption algorithm. If the environment variable BISCUIT_ALGORITHM is "+
 		"set, it will be used as the default value. Options: "+
-		strings.Join(algorithms.GetAlgorithms(), ", ")).
+		strings.Join(algorithms.GetRegisteredAlgorithmsNames(), ", ")).
 		Short('a').
 		Envar("BISCUIT_ALGORITHM").
-		Default(algorithms.GetDefaultAlgorithm()).
-		Enum(algorithms.GetAlgorithms()...)
+		Default(secretbox.Name).
+		Enum(algorithms.GetRegisteredAlgorithmsNames()...)
 }
 
 // FilenameFlag defines a flag for the filename.

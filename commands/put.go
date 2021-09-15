@@ -124,7 +124,7 @@ func (w *put) chooseKeys(database store.FileStore) ([]store.Key, error) {
 		}
 		return keys, nil
 	}
-	algo, err := algorithms.New(*w.algo)
+	algo, err := algorithms.Get(*w.algo)
 	if err != nil {
 		return nil, err
 	}
@@ -154,11 +154,11 @@ func (w *put) choosePlaintext() ([]byte, error) {
 
 func encryptOne(ctx context.Context, keyConfig store.Key, name string, plaintext []byte) (store.Value, error) {
 	var value store.Value
-	algo, err := algorithms.New(keyConfig.Algorithm)
+	algo, err := algorithms.Get(keyConfig.Algorithm)
 	if err != nil {
 		return value, err
 	}
-	value.Algorithm = algo.Label()
+	value.Algorithm = keyConfig.Algorithm
 
 	var envelopeKey keymanager.EnvelopeKey
 	if algo.NeedsKey() {

@@ -72,7 +72,7 @@ func (r *get) Run(ctx context.Context) error {
 }
 
 func decryptOneValue(ctx context.Context, value store.Value, name string) ([]byte, error) {
-	algo, err := algorithms.New(value.Algorithm)
+	algo, err := algorithms.Get(value.Algorithm)
 	if err != nil {
 		return []byte{}, err
 	}

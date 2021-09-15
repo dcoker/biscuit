@@ -1,16 +1,12 @@
-package algorithms
+package plain
 
 const (
-	plaintextLabel = "none"
+	Name = "none"
 )
-
-func init() {
-	registry[plaintextLabel] = newPlain
-}
 
 type plain struct{}
 
-func newPlain() Algorithm {
+func New() *plain {
 	return &plain{}
 }
 
@@ -20,10 +16,6 @@ func (s *plain) Encrypt(_ []byte, data []byte) ([]byte, error) {
 
 func (s *plain) Decrypt(_ []byte, ciphertext []byte) ([]byte, error) {
 	return ciphertext, nil
-}
-
-func (s *plain) Label() string {
-	return plaintextLabel
 }
 
 func (s *plain) NeedsKey() bool {

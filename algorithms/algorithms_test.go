@@ -1,4 +1,4 @@
-package algorithms
+package algorithms_test
 
 import (
 	"bytes"
@@ -6,6 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dcoker/biscuit/algorithms"
+	"github.com/dcoker/biscuit/algorithms/aesgcm256"
+	"github.com/dcoker/biscuit/algorithms/secretbox"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,11 +22,15 @@ func TestAlgorithms(t *testing.T) {
 	_, err = rand.Read(wrongKey[:])
 	assert.NoError(t, err)
 
-	for _, label := range GetAlgorithms() {
-		if label == plaintextLabel {
-			continue
-		}
-		algo, err := New(label)
+	err = algorithms.Register(secretbox.Name, secretbox.New())
+	assert.NoError(t, err)
+	err = algorithms.Register(aesgcm256.Name, aesgcm256.New())
+	assert.NoError(t, err)
+
+	algos := algorithms.GetRegisteredAlgorithmsNames()
+
+	for _, algoName := range algos {
+		algo, err := algorithms.Get(algoName)
 		assert.NoError(t, err)
 		for _, expected := range testInputs {
 			ciphertext, err := algo.Encrypt(key[:], []byte(expected))
