@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	myAWS "github.com/dcoker/biscuit/internal/aws"
+	"github.com/dcoker/biscuit/internal/yaml"
 	"github.com/dcoker/biscuit/keymanager"
 	"github.com/dcoker/biscuit/shared"
 	"github.com/dcoker/biscuit/store"
@@ -114,7 +115,7 @@ func (w *kmsGrantsCreate) Run(ctx context.Context) error {
 		}
 		output.Aliases[alias] = regionToGrantDetails
 	}
-	fmt.Print(shared.MustYaml(output))
+	fmt.Print(yaml.ToString(output))
 	return nil
 }
 

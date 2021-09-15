@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
+	"github.com/dcoker/biscuit/internal/yaml"
 	"github.com/dcoker/biscuit/keymanager"
 	"github.com/dcoker/biscuit/shared"
 	"github.com/dcoker/biscuit/store"
@@ -82,7 +83,7 @@ func (w *kmsGrantsList) Run(ctx context.Context) error {
 		}
 	}
 	if len(output) > 0 {
-		fmt.Print(shared.MustYaml(output))
+		fmt.Print(yaml.ToString(output))
 	}
 	return nil
 }
