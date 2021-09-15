@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
 	myAWS "github.com/dcoker/biscuit/internal/aws"
+	stringsFunc "github.com/dcoker/biscuit/internal/strings"
 	"github.com/dcoker/biscuit/keymanager"
 	"github.com/dcoker/biscuit/shared"
 	"github.com/dcoker/biscuit/store"
@@ -125,7 +126,7 @@ func (w *kmsInit) Run(ctx context.Context) error {
 
 	fmt.Printf("The template used by %s has been updated to include %s: %s.\n",
 		*w.filename,
-		pluralize("key", len(regionKeys)),
+		stringsFunc.Pluralize("key", len(regionKeys)),
 		stringStringMapValues(regionKeys))
 
 	return database.Put(store.KeyTemplateName, updatedTemplate)
@@ -232,7 +233,7 @@ func checkKmsKeyExists(ctx context.Context, keyAlias, region string) (string, er
 
 func (w *kmsInit) discoverOrCreateKeys(ctx context.Context) (map[string]string, error) {
 	fmt.Printf("Checking %s for the '%s' label.\n",
-		friendlyJoin(*w.regions),
+		stringsFunc.FriendlyJoin(*w.regions),
 		*w.label)
 
 	aliasName := kmsAliasName(*w.label)
@@ -262,8 +263,8 @@ func (w *kmsInit) discoverOrCreateKeys(ctx context.Context) (map[string]string, 
 			return nil, err
 		}
 
-		fmt.Printf("%s %s need to be provisioned.\n", pluralize("Region", len(regionsMissingKeys)),
-			friendlyJoin(regionsMissingKeys))
+		fmt.Printf("%s %s need to be provisioned.\n", stringsFunc.Pluralize("Region", len(regionsMissingKeys)),
+			stringsFunc.FriendlyJoin(regionsMissingKeys))
 
 		errs := make(chan error, len(regionsMissingKeys))
 		var wg sync.WaitGroup
@@ -422,23 +423,4 @@ func stringStringMapValues(input map[string]string) []string {
 	}
 	sort.Strings(results)
 	return results
-}
-
-func pluralize(word string, count int) string {
-	if count > 1 {
-		return word + "s"
-	}
-	return word
-}
-
-func friendlyJoin(words []string) string {
-	if len(words) == 0 {
-		return ""
-	}
-	if len(words) == 1 {
-		return words[0]
-	}
-	sort.Strings(words)
-	commas := words[0 : len(words)-1]
-	return strings.Join(commas, ", ") + " and " + words[len(words)-1]
 }

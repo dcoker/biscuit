@@ -6,14 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFriendlyJoin(t *testing.T) {
-	assert.Equal(t, "", friendlyJoin([]string{}))
-	assert.Equal(t, "us-west-1", friendlyJoin([]string{"us-west-1"}))
-	assert.Equal(t, "us-east-1 and us-west-2", friendlyJoin([]string{"us-west-2", "us-east-1"}))
-	assert.Equal(t, "us-east-1, us-west-1 and us-west-2", friendlyJoin([]string{"us-west-2", "us-east-1",
-		"us-west-1"}))
-}
-
 func TestArnList(t *testing.T) {
 	assert.Equal(t,
 		[]string{},
