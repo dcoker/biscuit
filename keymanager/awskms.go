@@ -2,8 +2,8 @@ package keymanager
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kms"
+	myAWS "github.com/dcoker/biscuit/internal/aws"
 )
 
 const (
@@ -68,7 +68,7 @@ func (k *Kms) Label() string {
 func newKmsClient(arn string) (*kms.KMS, error) {
 	parsed, err := NewARN(arn)
 	if err != nil {
-		return kms.New(session.New()), nil
+		return kms.New(myAWS.NewSession("")), nil
 	}
-	return kms.New(session.New(&aws.Config{Region: &parsed.Region})), nil
+	return kms.New(myAWS.NewSession(parsed.Region)), nil
 }

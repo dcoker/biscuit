@@ -8,8 +8,8 @@ import (
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kms"
+	myAWS "github.com/dcoker/biscuit/internal/aws"
 )
 
 // MultiRegionKey represents a collection of KMS Keys that are operated on simultaneously.
@@ -41,7 +41,7 @@ func NewMultiRegionKey(aliasName string, regions []string, forceRegion string) (
 		go func(region string) {
 			defer wg.Done()
 			output := regionSpecificInfo{region: region}
-			client := kmsHelper{kms.New(session.New(&aws.Config{Region: &region}))}
+			client := kmsHelper{kms.New(myAWS.NewSession(region))}
 			keyID, policy, err := client.GetAliasTargetAndPolicy(aliasName)
 			if err != nil {
 				output.err = err
@@ -96,7 +96,7 @@ func (m *MultiRegionKey) SetKeyPolicy(policy string) error {
 		wg.Add(1)
 		go func(region string) {
 			defer wg.Done()
-			client := kmsHelper{kms.New(session.New(&aws.Config{Region: &region}))}
+			client := kmsHelper{kms.New(myAWS.NewSession(region))}
 			if _, err := client.PutKeyPolicy(&kms.PutKeyPolicyInput{
 				KeyId:      aws.String(m.regionToID[region]),
 				PolicyName: aws.String("default"),
@@ -124,7 +124,7 @@ func (m *MultiRegionKey) GetGrantDetails() (map[string][]*kms.GrantListEntry, er
 		wg.Add(1)
 		go func(region string) {
 			defer wg.Done()
-			client := kmsHelper{kms.New(session.New(&aws.Config{Region: &region}))}
+			client := kmsHelper{kms.New(myAWS.NewSession(region))}
 			var grants []*kms.GrantListEntry
 			if err := client.ListGrantsPages(
 				&kms.ListGrantsInput{KeyId: aws.String(m.regionToID[region])},
@@ -172,7 +172,7 @@ func (m *MultiRegionKey) AddGrant(grant kms.CreateGrantInput) (map[string]kms.Cr
 		go func(region string, grant kms.CreateGrantInput) {
 			defer wg.Done()
 			grant.KeyId = aws.String(m.regionToID[region])
-			kmsClient := kms.New(session.New(&aws.Config{Region: &region}))
+			kmsClient := kms.New(myAWS.NewSession(region))
 			createGrantOutput, err := kmsClient.CreateGrant(&grant)
 			if err != nil {
 				results <- addGrantResults{region: region, err: err}
@@ -203,7 +203,7 @@ func (m *MultiRegionKey) RetireGrant(name string) error {
 		wg.Add(1)
 		go func(region string) {
 			defer wg.Done()
-			kmsClient := kms.New(session.New(&aws.Config{Region: &region}))
+			kmsClient := kms.New(myAWS.NewSession(region))
 			// Find GrantID in this region
 			var grantID *string
 			if err := kmsClient.ListGrantsPages(&kms.ListGrantsInput{

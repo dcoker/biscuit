@@ -11,10 +11,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudformation"
 	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/sts"
+	myAWS "github.com/dcoker/biscuit/internal/aws"
 	"github.com/dcoker/biscuit/keymanager"
 	"github.com/dcoker/biscuit/shared"
 	"github.com/dcoker/biscuit/store"
@@ -174,7 +174,7 @@ func collectRegionInfo(stackName, keyAlias string, regions []string) (map[string
 }
 
 func checkCloudFormationStackExists(stackName, region string) (bool, error) {
-	cfclient := cloudformation.New(session.New(&aws.Config{Region: aws.String(region)}))
+	cfclient := cloudformation.New(myAWS.NewSession(region))
 	_, err := cfclient.DescribeStacks(&cloudformation.DescribeStacksInput{
 		StackName: aws.String(stackName),
 	})
@@ -192,7 +192,7 @@ func checkCloudFormationStackExists(stackName, region string) (bool, error) {
 
 func checkKmsKeyExists(keyAlias, region string) (string, error) {
 	var foundAliasArn string
-	kmsClient := kms.New(session.New(&aws.Config{Region: aws.String(region)}))
+	kmsClient := kms.New(myAWS.NewSession(region))
 	var callbackErr error
 	fp := func(p *kms.ListAliasesOutput, lastPage bool) bool {
 		for _, aliasRecord := range p.Aliases {
@@ -321,7 +321,7 @@ func (w *kmsInit) createKeyInRegion(region, stackName, aliasName string, finalAd
 
 func createAlias(region, aliasName, keyArn string) (string, error) {
 	fmt.Printf("%s: creating alias '%s' for key %s.\n", region, aliasName, keyArn)
-	client := kmsHelper{kms.New(session.New(&aws.Config{Region: aws.String(region)}))}
+	client := kmsHelper{kms.New(myAWS.NewSession(""))}
 	if _, err := client.CreateAlias(&kms.CreateAliasInput{
 		TargetKeyId: aws.String(keyArn),
 		AliasName:   aws.String(aliasName)}); err != nil {
@@ -346,7 +346,7 @@ func truefalse(iff bool) string {
 }
 
 func (w *kmsInit) constructArns() ([]string, []string, error) {
-	stsClient := sts.New(session.New(&aws.Config{}))
+	stsClient := sts.New(myAWS.NewSession(""))
 	callerIdentity, err := stsClient.GetCallerIdentity(nil)
 	if err != nil {
 		return nil, nil, err

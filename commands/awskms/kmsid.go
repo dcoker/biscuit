@@ -3,8 +3,8 @@ package awskms
 import (
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sts"
+	myAWS "github.com/dcoker/biscuit/internal/aws"
 )
 
 // KmsGetCallerIdentity prints AWS client configuration info.
@@ -12,7 +12,7 @@ type KmsGetCallerIdentity struct{}
 
 // Run prints the results of STS GetCallerIdentity.
 func (w *KmsGetCallerIdentity) Run() error {
-	session := session.New()
+	session := myAWS.NewSession("")
 	credentials, err := session.Config.Credentials.Get()
 	if err != nil {
 		return err
