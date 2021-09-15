@@ -1,13 +1,14 @@
-package keymanager
+package aws_test
 
 import (
 	"testing"
 
+	"github.com/dcoker/biscuit/internal/aws"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestKeys(t *testing.T) {
-	key, err := NewARN("arn:aws:kms:us-west-1:105770556716:key/37793df5-ad32-4d06-b19f-bfb95cee4a35")
+	key, err := aws.NewARN("arn:aws:kms:us-west-1:105770556716:key/37793df5-ad32-4d06-b19f-bfb95cee4a35")
 	assert.NoError(t, err)
 	assert.Equal(t, "kms", key.Service)
 	assert.Equal(t, "key", key.ResourceType)
@@ -15,7 +16,7 @@ func TestKeys(t *testing.T) {
 	assert.Equal(t, "arn:aws:kms:us-west-1:105770556716:key/37793df5-ad32-4d06-b19f-bfb95cee4a35", key.String())
 	assert.True(t, key.IsKmsKey())
 
-	alias, err := NewARN("arn:aws:kms:us-west-1:105770556716:alias/foo")
+	alias, err := aws.NewARN("arn:aws:kms:us-west-1:105770556716:alias/foo")
 	assert.NoError(t, err)
 	assert.True(t, alias.IsKmsAlias())
 	assert.Equal(t, "alias", alias.ResourceType)
@@ -30,14 +31,14 @@ func TestInvalidArn(t *testing.T) {
 		"alias/foo",
 		"key/foo",
 	} {
-		_, err := NewARN(invalid)
+		_, err := aws.NewARN(invalid)
 		assert.Error(t, err)
 	}
 
 }
 
 func TestARN(t *testing.T) {
-	a1, err := NewARN("arn:partition:service:region:account-id:resource")
+	a1, err := aws.NewARN("arn:partition:service:region:account-id:resource")
 	assert.NoError(t, err)
 	assert.Equal(t, "partition", a1.Partition)
 	assert.Equal(t, "service", a1.Service)
@@ -47,7 +48,7 @@ func TestARN(t *testing.T) {
 	assert.Equal(t, "", a1.ResourceType)
 	assert.Equal(t, "arn:partition:service:region:account-id:resource", a1.String())
 
-	a2, err := NewARN("arn:partition:service:region:account-id:resourcetype/resource")
+	a2, err := aws.NewARN("arn:partition:service:region:account-id:resourcetype/resource")
 	assert.NoError(t, err)
 	assert.Equal(t, "partition", a2.Partition)
 	assert.Equal(t, "service", a2.Service)
@@ -57,7 +58,7 @@ func TestARN(t *testing.T) {
 	assert.Equal(t, "resourcetype", a2.ResourceType)
 	assert.Equal(t, "arn:partition:service:region:account-id:resourcetype/resource", a2.String())
 
-	a3, err := NewARN("arn:partition:service:region:account-id:resourcetype:resource")
+	a3, err := aws.NewARN("arn:partition:service:region:account-id:resourcetype:resource")
 	assert.NoError(t, err)
 	assert.Equal(t, "partition", a3.Partition)
 	assert.Equal(t, "service", a3.Service)
@@ -69,7 +70,7 @@ func TestARN(t *testing.T) {
 }
 
 func TestARNVariants(t *testing.T) {
-	colonSlashSlash, err := NewARN("arn:partition:service:region:account-id:resourcetype/resource/label")
+	colonSlashSlash, err := aws.NewARN("arn:partition:service:region:account-id:resourcetype/resource/label")
 	assert.NoError(t, err)
 	assert.Equal(t, "partition", colonSlashSlash.Partition)
 	assert.Equal(t, "service", colonSlashSlash.Service)
@@ -78,7 +79,7 @@ func TestARNVariants(t *testing.T) {
 	assert.Equal(t, "resource/label", colonSlashSlash.Resource)
 	assert.Equal(t, "resourcetype", colonSlashSlash.ResourceType)
 
-	colonColonSlash, err := NewARN("arn:partition:service:region:account-id:resourcetype:resource/label")
+	colonColonSlash, err := aws.NewARN("arn:partition:service:region:account-id:resourcetype:resource/label")
 	assert.NoError(t, err)
 	assert.Equal(t, "partition", colonColonSlash.Partition)
 	assert.Equal(t, "service", colonColonSlash.Service)

@@ -73,7 +73,7 @@ func (k *Kms) Label() string {
 
 func newKmsClient(ctx context.Context, arn string) (*kms.Client, error) {
 	cfg := myAWS.MustNewConfig(ctx)
-	parsed, err := NewARN(arn)
+	parsed, err := myAWS.NewARN(arn)
 
 	if err == nil {
 		cfg.Region = parsed.Region

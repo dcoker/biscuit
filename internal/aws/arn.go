@@ -1,15 +1,15 @@
-package keymanager
+package aws
 
 import (
 	"fmt"
 	"strings"
 )
 
-type errInvalidArn struct {
+type InvalidARNError struct {
 	arn string
 }
 
-func (e *errInvalidArn) Error() string {
+func (e *InvalidARNError) Error() string {
 	return fmt.Sprintf("%s: invalid ARN", e.arn)
 }
 
@@ -29,10 +29,10 @@ func NewARN(s string) (ARN, error) {
 	s = strings.TrimSpace(s)
 	splat := strings.Split(s, ":")
 	if !strings.HasPrefix(s, "arn:") {
-		return ARN{}, &errInvalidArn{s}
+		return ARN{}, &InvalidARNError{s}
 	}
 	if len(splat) < 6 {
-		return ARN{}, &errInvalidArn{s}
+		return ARN{}, &InvalidARNError{s}
 	}
 	arn := ARN{
 		Partition: splat[1],
@@ -54,7 +54,7 @@ func NewARN(s string) (ARN, error) {
 			arn.Resource = splat[5]
 		}
 	} else {
-		return ARN{}, &errInvalidArn{s}
+		return ARN{}, &InvalidARNError{s}
 	}
 	return arn, nil
 }

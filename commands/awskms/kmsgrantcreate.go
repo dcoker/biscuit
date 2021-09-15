@@ -143,7 +143,7 @@ func resolveValuesToAliasesAndRegions(ctx context.Context, values store.ValueLis
 	// aliases, and maintains a list of regions for each alias.
 	aliases := make(map[string][]string)
 	for _, v := range values {
-		arn, err := keymanager.NewARN(v.KeyID)
+		arn, err := myAWS.NewARN(v.KeyID)
 		if err != nil {
 			return nil, err
 		}
