@@ -364,23 +364,18 @@ func (w *kmsInit) constructArns(ctx context.Context) ([]string, []string, error)
 	awsAccountID := *callerIdentity.Account
 	fmt.Printf("Detected account ID #%s and that I am %s.\n", awsAccountID, *callerIdentity.Arn)
 	adminArns := arn.CleanList(awsAccountID, *w.administratorArns+","+*callerIdentity.Arn)
-	if err := validateArnList(adminArns); err != nil {
-		return nil, nil, fmt.Errorf("Administrator ARNs: %s", err)
+	if len(adminArns) == 0 {
+		return nil, nil, fmt.Errorf("there must be a least one administrator ARN")
 	}
+
 	userArns := arn.CleanList(awsAccountID, *w.userArns+","+*callerIdentity.Arn)
-	if err := validateArnList(userArns); err != nil {
-		return nil, nil, fmt.Errorf("User ARNs: %s", err)
+	if len(userArns) == 0 {
+		return nil, nil, fmt.Errorf("there must be a least one user ARN")
+
 	}
 	fmt.Printf("Administrative actions will be allowed by %s\n", adminArns)
 	fmt.Printf("User actions will be allowed by %s\n", userArns)
 	return adminArns, userArns, nil
-}
-
-func validateArnList(arns []string) error {
-	if len(arns) == 0 {
-		return errors.New("There must be at least one entry.")
-	}
-	return nil
 }
 
 func stringStringMapValues(input map[string]string) []string {
