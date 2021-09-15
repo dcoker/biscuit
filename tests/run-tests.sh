@@ -57,6 +57,7 @@ for one_test in 0*sh; do
 done
 echo ">> waiting"
 wait
+exitCode=0
 for test_log in "${RESULTS_DIR}"/*.log; do
   echo -n "${test_log}: "
   if grep -q '+++++ PASSED' "${test_log}"; then
@@ -64,5 +65,7 @@ for test_log in "${RESULTS_DIR}"/*.log; do
   else
     echo "FAILED :("
     cat "${test_log}"
+    exitCode=1
   fi
 done
+exit ${exitCode}
