@@ -6,7 +6,6 @@ import (
 
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -68,7 +67,7 @@ func (r *kmsEditKeyPolicy) Run(ctx context.Context) error {
 }
 
 func launchEditor(contents string) (string, error) {
-	f, err := ioutil.TempFile("", "secrets")
+	f, err := os.CreateTemp("", "secrets")
 	if err != nil {
 		return "", err
 	}
@@ -93,7 +92,7 @@ func launchEditor(contents string) (string, error) {
 		return "", err
 	}
 
-	bytes, err := ioutil.ReadFile(f.Name())
+	bytes, err := os.ReadFile(f.Name())
 	if err != nil {
 		return "", err
 	}

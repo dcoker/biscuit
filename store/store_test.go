@@ -1,7 +1,6 @@
 package store
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -12,7 +11,7 @@ import (
 )
 
 func TestStore_Empty(t *testing.T) {
-	tmpfile, err := ioutil.TempFile("", "TestStore")
+	tmpfile, err := os.CreateTemp("", "TestStore")
 	defer mustRemove(tmpfile.Name())
 	assert.NoError(t, err)
 	store := NewFileStore(tmpfile.Name())
@@ -22,7 +21,7 @@ func TestStore_Empty(t *testing.T) {
 }
 
 func TestStore_Lifecycle(t *testing.T) {
-	tmpfile, err := ioutil.TempFile("", "TestStore")
+	tmpfile, err := os.CreateTemp("", "TestStore")
 	defer mustRemove(tmpfile.Name())
 	assert.NoError(t, err)
 	store := NewFileStore(tmpfile.Name())
@@ -70,7 +69,7 @@ func TestStore_fileDoesNotExist(t *testing.T) {
 }
 
 func TestStore_writingCreatesFile(t *testing.T) {
-	dir, err := ioutil.TempDir("", "TestStore")
+	dir, err := os.MkdirTemp("", "TestStore")
 	assert.NoError(t, err)
 	defer mustRemoveAll(dir)
 	filename := path.Join(dir, "secrets.yml")

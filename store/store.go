@@ -3,7 +3,6 @@ package store
 import (
 	"encoding/base64"
 	"errors"
-	"io/ioutil"
 	"os"
 
 	"gopkg.in/yaml.v2"
@@ -73,7 +72,7 @@ func (f FileStore) Put(name string, values ValueList) error {
 
 	// poor attempt at atomic file write
 	tempfile := string(f) + ".tmp"
-	if err := ioutil.WriteFile(tempfile, output, 0644); err != nil {
+	if err := os.WriteFile(tempfile, output, 0644); err != nil {
 		return err
 	}
 	return os.Rename(tempfile, string(f))
@@ -81,7 +80,7 @@ func (f FileStore) Put(name string, values ValueList) error {
 
 // GetAll returns all of the entries in the file.
 func (f FileStore) GetAll() (EntryMap, error) {
-	contents, err := ioutil.ReadFile(string(f))
+	contents, err := os.ReadFile(string(f))
 	entries := make(EntryMap)
 	if err != nil {
 		return entries, err

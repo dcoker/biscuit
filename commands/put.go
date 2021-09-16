@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"io/ioutil"
+	"io"
 	"os"
 	"strings"
 
@@ -146,7 +146,7 @@ func (w *put) choosePlaintext() ([]byte, error) {
 		return nil, errConflictingValue
 	}
 	if *w.fromFile != nil {
-		plaintext, err := ioutil.ReadAll(*w.fromFile)
+		plaintext, err := io.ReadAll(*w.fromFile)
 		return plaintext, err
 	}
 	return []byte(*w.value), nil

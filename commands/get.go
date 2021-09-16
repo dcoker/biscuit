@@ -3,7 +3,6 @@ package commands
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/dcoker/biscuit/algorithms"
@@ -61,7 +60,7 @@ func (r *get) Run(ctx context.Context) error {
 	}
 
 	if len(*r.writeTo) > 0 {
-		return ioutil.WriteFile(*r.writeTo, plaintext, 0644)
+		return os.WriteFile(*r.writeTo, plaintext, 0644)
 	}
 
 	fmt.Printf("%s", plaintext)
