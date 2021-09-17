@@ -1,6 +1,8 @@
 package awskms
 
 import (
+	"context"
+
 	"github.com/dcoker/biscuit/keymanager"
 	"github.com/dcoker/biscuit/shared"
 	"github.com/dcoker/biscuit/store"
@@ -20,7 +22,7 @@ func NewKmsGrantsRetire(c *kingpin.CmdClause) shared.Command {
 	}
 }
 
-func (w *kmsGrantsRetire) Run() error {
+func (w *kmsGrantsRetire) Run(ctx context.Context) error {
 	database := store.NewFileStore(*w.filename)
 	values, err := database.Get(*w.name)
 	if err != nil {
@@ -28,18 +30,18 @@ func (w *kmsGrantsRetire) Run() error {
 	}
 	values = values.FilterByKeyManager(keymanager.KmsLabel)
 
-	aliases, err := resolveValuesToAliasesAndRegions(values)
+	aliases, err := resolveValuesToAliasesAndRegions(ctx, values)
 	if err != nil {
 		return err
 	}
 
 	for aliasName, regions := range aliases {
-		mrk, err := NewMultiRegionKey(aliasName, regions, "")
+		mrk, err := NewMultiRegionKey(ctx, aliasName, regions, "")
 		if err != nil {
 			return err
 		}
 
-		if err := mrk.RetireGrant(*w.grantName); err != nil {
+		if err := mrk.RetireGrant(ctx, *w.grantName); err != nil {
 			return err
 		}
 	}

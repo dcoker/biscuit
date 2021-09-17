@@ -1,6 +1,7 @@
 package awskms
 
 import (
+	"context"
 	"fmt"
 
 	"encoding/json"
@@ -38,9 +39,9 @@ func NewKmsEditKeyPolicy(c *kingpin.CmdClause) shared.Command {
 }
 
 // Run the command.
-func (r *kmsEditKeyPolicy) Run() error {
+func (r *kmsEditKeyPolicy) Run(ctx context.Context) error {
 	aliasName := kmsAliasName(*r.label)
-	mrk, err := NewMultiRegionKey(aliasName, *r.regions, *r.forceRegion)
+	mrk, err := NewMultiRegionKey(ctx, aliasName, *r.regions, *r.forceRegion)
 	if err != nil {
 		return err
 	}
@@ -59,7 +60,7 @@ func (r *kmsEditKeyPolicy) Run() error {
 		return err
 	}
 
-	if err := mrk.SetKeyPolicy(indentedPolicy); err != nil {
+	if err := mrk.SetKeyPolicy(ctx, indentedPolicy); err != nil {
 		return err
 	}
 	fmt.Printf("New policy saved.\n")

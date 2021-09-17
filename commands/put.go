@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"encoding/base64"
 	"errors"
 	"io/ioutil"
@@ -62,7 +63,7 @@ type encryptResult struct {
 }
 
 // Run runs the command.
-func (w *put) Run() error {
+func (w *put) Run(ctx context.Context) error {
 	database := store.NewFileStore(*w.filename)
 
 	keys, err := w.chooseKeys(database)
@@ -81,7 +82,7 @@ func (w *put) Run() error {
 		wg.Add(1)
 		go func(keyConfig store.Key, plaintext []byte) {
 			defer wg.Done()
-			value, err := encryptOne(keyConfig, *w.name, plaintext)
+			value, err := encryptOne(ctx, keyConfig, *w.name, plaintext)
 			results <- encryptResult{value, err}
 		}(keyConfig, plaintext)
 	}
@@ -151,7 +152,7 @@ func (w *put) choosePlaintext() ([]byte, error) {
 	return []byte(*w.value), nil
 }
 
-func encryptOne(keyConfig store.Key, name string, plaintext []byte) (store.Value, error) {
+func encryptOne(ctx context.Context, keyConfig store.Key, name string, plaintext []byte) (store.Value, error) {
 	var value store.Value
 	algo, err := algorithms.New(keyConfig.Algorithm)
 	if err != nil {
@@ -166,7 +167,7 @@ func encryptOne(keyConfig store.Key, name string, plaintext []byte) (store.Value
 			return value, err
 		}
 		value.KeyManager = keyManager.Label()
-		envelopeKey, err = keyManager.GenerateEnvelopeKey(keyConfig.KeyID, name)
+		envelopeKey, err = keyManager.GenerateEnvelopeKey(ctx, keyConfig.KeyID, name)
 		if err != nil {
 			return value, err
 		}

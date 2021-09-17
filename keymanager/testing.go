@@ -2,6 +2,7 @@ package keymanager
 
 import (
 	"bytes"
+	"context"
 )
 
 const (
@@ -28,7 +29,7 @@ func newTestingKeyManager() KeyManager {
 
 // GenerateEnvelopeKey generates an EnvelopeKey under a specific KeyID.
 //noinspection GoUnusedParameter
-func (k *testingKeys) GenerateEnvelopeKey(keyID, secretID string) (EnvelopeKey, error) {
+func (k *testingKeys) GenerateEnvelopeKey(_ context.Context, keyID, secretID string) (EnvelopeKey, error) {
 	return EnvelopeKey{
 		ResolvedID: "resolved",
 		Plaintext:  testingPlaintext,
@@ -38,7 +39,7 @@ func (k *testingKeys) GenerateEnvelopeKey(keyID, secretID string) (EnvelopeKey, 
 
 // Decrypt decrypts the encrypted key.
 //noinspection GoUnusedParameter
-func (k *testingKeys) Decrypt(keyID string, keyCiphertext []byte, secretID string) ([]byte, error) {
+func (k *testingKeys) Decrypt(_ context.Context, keyID string, keyCiphertext []byte, secretID string) ([]byte, error) {
 	return testingPlaintext, nil
 }
 

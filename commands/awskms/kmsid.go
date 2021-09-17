@@ -1,9 +1,10 @@
 package awskms
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	myAWS "github.com/dcoker/biscuit/internal/aws"
 )
 
@@ -11,21 +12,21 @@ import (
 type KmsGetCallerIdentity struct{}
 
 // Run prints the results of STS GetCallerIdentity.
-func (w *KmsGetCallerIdentity) Run() error {
-	session := myAWS.NewSession("")
-	credentials, err := session.Config.Credentials.Get()
+func (w *KmsGetCallerIdentity) Run(ctx context.Context) error {
+	cfg := myAWS.MustNewConfig(ctx)
+	credentials, err := cfg.Credentials.Retrieve(ctx)
 	if err != nil {
 		return err
 	}
 	fmt.Printf("# Credentials\n")
-	fmt.Printf("AWS Credentials Provider: %s\n", credentials.ProviderName)
+	fmt.Printf("AWS Credentials Provider: %s\n", credentials.Source)
 	fmt.Printf("AWS Access Key: %s\n", credentials.AccessKeyID)
 	fmt.Printf("# STS GetCallerIdentity\n")
-	stsClient := sts.New(session)
-	getCallerIdentityOutput, err := stsClient.GetCallerIdentity(nil)
+	stsClient := sts.NewFromConfig(cfg)
+	getCallerIdentityOutput, err := stsClient.GetCallerIdentity(ctx, nil)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%s\n", getCallerIdentityOutput.String())
+	fmt.Printf("\tAccount: %s\n\tARN: %s\n\tUserID: %s\n", *getCallerIdentityOutput.Account, *getCallerIdentityOutput.Arn, *getCallerIdentityOutput.UserId)
 	return nil
 }

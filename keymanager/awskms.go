@@ -1,8 +1,10 @@
 package keymanager
 
 import (
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/kms"
+	"context"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
 	myAWS "github.com/dcoker/biscuit/internal/aws"
 )
 
@@ -24,18 +26,19 @@ func NewKms() KeyManager {
 }
 
 // GenerateEnvelopeKey generates an EnvelopeKey under a specific KeyID.
-func (k *Kms) GenerateEnvelopeKey(keyID string, secretID string) (EnvelopeKey, error) {
-	client, err := newKmsClient(keyID)
+func (k *Kms) GenerateEnvelopeKey(ctx context.Context, keyID string, secretID string) (EnvelopeKey, error) {
+	client, err := newKmsClient(ctx, keyID)
 	if err != nil {
 		return EnvelopeKey{}, err
 	}
 	generateDataKeyInput := &kms.GenerateDataKeyInput{
 		KeyId: aws.String(keyID),
-		EncryptionContext: aws.StringMap(map[string]string{
+		EncryptionContext: map[string]string{
 			"SecretName": secretID,
-		}),
-		NumberOfBytes: aws.Int64(32)}
-	generateDataKeyOutput, err := client.GenerateDataKey(generateDataKeyInput)
+		},
+		NumberOfBytes: aws.Int32(32),
+	}
+	generateDataKeyOutput, err := client.GenerateDataKey(ctx, generateDataKeyInput)
 	if err != nil {
 		return EnvelopeKey{}, err
 	}
@@ -46,18 +49,21 @@ func (k *Kms) GenerateEnvelopeKey(keyID string, secretID string) (EnvelopeKey, e
 }
 
 // Decrypt decrypts the encrypted key.
-func (k *Kms) Decrypt(keyID string, keyCiphertext []byte, secretID string) ([]byte, error) {
-	client, err := newKmsClient(keyID)
+func (k *Kms) Decrypt(ctx context.Context, keyID string, keyCiphertext []byte, secretID string) ([]byte, error) {
+	client, err := newKmsClient(ctx, keyID)
 	if err != nil {
 		return nil, err
 	}
-	do, err := client.Decrypt(&kms.DecryptInput{
-		EncryptionContext: aws.StringMap(map[string]string{
+	do, err := client.Decrypt(ctx, &kms.DecryptInput{
+		EncryptionContext: map[string]string{
 			"SecretName": secretID,
-		}),
+		},
 		CiphertextBlob: keyCiphertext,
 	})
-	return do.Plaintext, err
+	if err != nil {
+		return []byte{}, err
+	}
+	return do.Plaintext, nil
 }
 
 // Label returns kmsLabel
@@ -65,10 +71,13 @@ func (k *Kms) Label() string {
 	return KmsLabel
 }
 
-func newKmsClient(arn string) (*kms.KMS, error) {
+func newKmsClient(ctx context.Context, arn string) (*kms.Client, error) {
+	cfg := myAWS.MustNewConfig(ctx)
 	parsed, err := NewARN(arn)
-	if err != nil {
-		return kms.New(myAWS.NewSession("")), nil
+
+	if err == nil {
+		cfg.Region = parsed.Region
 	}
-	return kms.New(myAWS.NewSession(parsed.Region)), nil
+
+	return kms.NewFromConfig(cfg), nil
 }

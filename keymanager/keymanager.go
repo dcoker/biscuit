@@ -1,6 +1,7 @@
 package keymanager
 
 import (
+	"context"
 	"fmt"
 	"sort"
 )
@@ -43,8 +44,8 @@ func GetKeyManagers() []string {
 // KeyManager represents a service that can generate envelope keys and provide decryption
 // keys.
 type KeyManager interface {
-	GenerateEnvelopeKey(keyID, secretID string) (EnvelopeKey, error)
-	Decrypt(keyID string, keyMetadata []byte, secretID string) ([]byte, error)
+	GenerateEnvelopeKey(ctx context.Context, keyID, secretID string) (EnvelopeKey, error)
+	Decrypt(ctx context.Context, keyID string, keyMetadata []byte, secretID string) ([]byte, error)
 	Label() string
 }
 

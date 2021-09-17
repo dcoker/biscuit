@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -24,7 +25,7 @@ func NewExport(c *kingpin.CmdClause) shared.Command {
 }
 
 // Run the command.
-func (r *export) Run() error {
+func (r *export) Run(ctx context.Context) error {
 	database := store.NewFileStore(*r.filename)
 	entries, err := database.GetAll()
 	if err != nil {
@@ -38,7 +39,7 @@ func (r *export) Run() error {
 
 		store.SortByKmsRegion(*r.regionPriority)(values)
 		for _, v := range values {
-			bytes, err := decryptOneValue(v, name)
+			bytes, err := decryptOneValue(ctx, v, name)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error: unable to decrypt, skipping: %s\n", err)
 				errs++

@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"os"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/smithy-go"
 	"github.com/dcoker/biscuit/commands"
 	"github.com/dcoker/biscuit/commands/awskms"
 	"github.com/dcoker/biscuit/shared"
@@ -52,46 +54,48 @@ func main() {
 	kmsDeprovisionCommand := awskms.NewKmsDeprovision(kmsDeprovisionFlags)
 
 	behavior := kingpin.MustParse(app.Parse(os.Args[1:]))
+	ctx := context.Background()
 	var err error
 	switch behavior {
 	case getFlags.FullCommand():
-		err = getCommand.Run()
+		err = getCommand.Run(ctx)
 	case putFlags.FullCommand():
-		err = writeCommand.Run()
+		err = writeCommand.Run(ctx)
 	case listFlags.FullCommand():
-		err = listCommand.Run()
+		err = listCommand.Run(ctx)
 	case kmsIDFlags.FullCommand():
-		err = kmsIDCommand.Run()
+		err = kmsIDCommand.Run(ctx)
 	case kmsInitFlags.FullCommand():
-		err = kmsInitCommand.Run()
+		err = kmsInitCommand.Run(ctx)
 	case kmsEditKeyPolicyFlags.FullCommand():
-		err = kmsEditKeyPolicy.Run()
+		err = kmsEditKeyPolicy.Run(ctx)
 	case kmsGrantsCreateFlags.FullCommand():
-		err = kmsGrantsCreateCommand.Run()
+		err = kmsGrantsCreateCommand.Run(ctx)
 	case kmsGrantsListFlags.FullCommand():
-		err = kmsGrantsListCommand.Run()
+		err = kmsGrantsListCommand.Run(ctx)
 	case kmsDeprovisionFlags.FullCommand():
-		err = kmsDeprovisionCommand.Run()
+		err = kmsDeprovisionCommand.Run(ctx)
 	case kmsGrantsRetireFlags.FullCommand():
-		err = kmsGrantsRetireCommand.Run()
+		err = kmsGrantsRetireCommand.Run(ctx)
 	case exportFlags.FullCommand():
-		err = exportCommand.Run()
+		err = exportCommand.Run(ctx)
 	}
-	if err == nil {
-		return
-	}
-	fmt.Fprintf(os.Stderr, "%s\n", err)
-	if awsErr, ok := err.(awserr.Error); ok {
-		switch awsErr.Code() {
-		case "MissingRegion":
-			fmt.Fprintf(os.Stderr, "Hint: Check or set the AWS_REGION environment variable.\n")
-		case "ExpiredTokenException":
-			fmt.Fprintf(os.Stderr, "Hint: Refresh your credentials.\n")
-		case "InvalidCiphertextException":
-			fmt.Fprintf(os.Stderr, "Hint: key_ciphertext may be corrupted.\n")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) {
+			switch apiErr.ErrorCode() {
+			case "MissingRegion":
+				fmt.Fprintf(os.Stderr, "Hint: Check or set the AWS_REGION environment variable.\n")
+			case "ExpiredTokenException":
+				fmt.Fprintf(os.Stderr, "Hint: Refresh your credentials.\n")
+			case "InvalidCiphertextException":
+				fmt.Fprintf(os.Stderr, "Hint: key_ciphertext may be corrupted.\n")
+			}
 		}
+
+		os.Exit(1)
 	}
-	os.Exit(1)
 }
 
 func mustAsset(filename string) string {

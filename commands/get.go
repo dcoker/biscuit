@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -34,7 +35,7 @@ func NewGet(c *kingpin.CmdClause) shared.Command {
 }
 
 // Run the command.
-func (r *get) Run() error {
+func (r *get) Run(ctx context.Context) error {
 	database := store.NewFileStore(*r.filename)
 	values, err := database.Get(*r.name)
 	if err != nil {
@@ -45,7 +46,7 @@ func (r *get) Run() error {
 	// so we stop after processing just one successfully.
 	var plaintext []byte
 	for _, value := range values {
-		plaintext, err = decryptOneValue(value, *r.name)
+		plaintext, err = decryptOneValue(ctx, value, *r.name)
 		if err != nil {
 			fmt.Fprintf(os.Stderr,
 				"Warning: decryption under %s failed: %s\n",
@@ -70,14 +71,14 @@ func (r *get) Run() error {
 	return nil
 }
 
-func decryptOneValue(value store.Value, name string) ([]byte, error) {
+func decryptOneValue(ctx context.Context, value store.Value, name string) ([]byte, error) {
 	algo, err := algorithms.New(value.Algorithm)
 	if err != nil {
 		return []byte{}, err
 	}
 	var keyPlaintext []byte
 	if algo.NeedsKey() {
-		keyPlaintext, err = getPlaintextKeyFromManager(value, name)
+		keyPlaintext, err = getPlaintextKeyFromManager(ctx, value, name)
 		if err != nil {
 			return nil, err
 		}
@@ -90,7 +91,7 @@ func decryptOneValue(value store.Value, name string) ([]byte, error) {
 	return plaintext, err
 }
 
-func getPlaintextKeyFromManager(value store.Value, name string) ([]byte, error) {
+func getPlaintextKeyFromManager(ctx context.Context, value store.Value, name string) ([]byte, error) {
 	keyManager, err := keymanager.New(value.KeyManager)
 	if err != nil {
 		return []byte{}, err
@@ -99,7 +100,7 @@ func getPlaintextKeyFromManager(value store.Value, name string) ([]byte, error) 
 	if err != nil {
 		return []byte{}, err
 	}
-	keyPlaintext, err := keyManager.Decrypt(value.Key.KeyID, keyCiphertext, name)
+	keyPlaintext, err := keyManager.Decrypt(ctx, value.Key.KeyID, keyCiphertext, name)
 	if err != nil {
 		return []byte{}, err
 	}
