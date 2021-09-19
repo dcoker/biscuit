@@ -8,17 +8,15 @@ VERSION := $(shell git describe --long --tags --always)
 GOVERSIONLDFLAG := -ldflags="-X main.Version=$(VERSION)"
 
 .PHONY: build
-build: doc.go test
 	$(GO) install $(GOVERSIONLDFLAG) $(GOFLAGS)
 
 .PHONY: test
 test:
 	$(GO) test $(GOFLAGS) $(PKG)
 
-doc.go: data
-	/bin/echo -e '/*\n' > doc.go
-	cat data/usage.txt >> doc.go
-	/bin/echo -e '\n*/\npackage main' >> doc.go
+.PHONY: generate
+generate:
+	go generate ./...
 
 .PHONY: check
 check:
@@ -31,7 +29,6 @@ fmt:
 
 .PHONY: clean
 clean:
-	rm doc.go
 	rm -f $(GOPATH)/bin/$(PROGNAME)
 	$(GO) clean $(GOFLAGS) -i $(PKG)
 
