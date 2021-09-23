@@ -1,6 +1,8 @@
 package store
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path"
 	"testing"
@@ -65,7 +67,7 @@ func TestStore_Lifecycle(t *testing.T) {
 func TestStore_fileDoesNotExist(t *testing.T) {
 	store := NewFileStore("does_not_exist")
 	_, err := store.GetAll()
-	assert.True(t, os.IsNotExist(err))
+	assert.True(t, errors.Is(err, fs.ErrNotExist))
 }
 
 func TestStore_writingCreatesFile(t *testing.T) {

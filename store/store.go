@@ -3,6 +3,8 @@ package store
 import (
 	"encoding/base64"
 	"errors"
+	"fmt"
+	"io/fs"
 	"os"
 
 	"gopkg.in/yaml.v2"
@@ -60,7 +62,7 @@ func (f FileStore) Get(name string) (ValueList, error) {
 // Put a value.
 func (f FileStore) Put(name string, values ValueList) error {
 	entries, err := f.GetAll()
-	if err != nil && !os.IsNotExist(err) {
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
 	entries[name] = values
@@ -83,15 +85,9 @@ func (f FileStore) GetAll() (EntryMap, error) {
 	contents, err := os.ReadFile(string(f))
 	entries := make(EntryMap)
 	if err != nil {
-		return entries, err
+		return entries, fmt.Errorf("could not read file %s: %w", f, err)
 	}
 	return entries, yaml.Unmarshal(contents, entries)
-}
-
-// IsProbablyNewStore returns true if an error returned by any of the methods in this package is likely to mean
-// that the store simply does not exist yet.
-func IsProbablyNewStore(err error) bool {
-	return os.IsNotExist(err)
 }
 
 // GetKeyIds returns the keys specified by the template entry.

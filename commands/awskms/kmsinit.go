@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"sort"
 	"strings"
@@ -96,7 +97,7 @@ func (w *kmsInit) Run(ctx context.Context) error {
 
 	// If the file exists, we'll make changes to its template rather than replace it.
 	keyConfigs, err := database.Get(store.KeyTemplateName)
-	if err != nil && !(err == store.ErrNameNotFound || store.IsProbablyNewStore(err)) {
+	if err != nil && !(err == store.ErrNameNotFound || errors.Is(err, fs.ErrNotExist)) {
 		return err
 	}
 

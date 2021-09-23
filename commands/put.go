@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"io"
+	"io/fs"
 	"os"
 	"strings"
 
@@ -98,7 +99,7 @@ func (w *put) Run(ctx context.Context) error {
 	}
 
 	// If the file doesn't have a template, create one from the keys used here.
-	if _, err := database.Get(store.KeyTemplateName); store.IsProbablyNewStore(err) {
+	if _, err := database.Get(store.KeyTemplateName); errors.Is(err, fs.ErrNotExist) {
 		var values []store.Value
 		for _, key := range keys {
 			values = append(values, store.Value{Key: key})
