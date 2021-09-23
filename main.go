@@ -24,7 +24,7 @@ var (
 )
 
 //go:embed data/*
-var fs embed.FS
+var fileSystem embed.FS
 
 func registerAlgorithms() error {
 	if err := algorithms.Register(secretbox.Name, secretbox.New()); err != nil {
@@ -119,7 +119,7 @@ func main() {
 }
 
 func mustAsset(filename string) string {
-	bytes, err := fs.ReadFile(filename)
+	bytes, err := fileSystem.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}
