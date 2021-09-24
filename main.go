@@ -15,7 +15,6 @@ import (
 	"github.com/dcoker/biscuit/algorithms/secretbox"
 	"github.com/dcoker/biscuit/cmd"
 	"github.com/dcoker/biscuit/cmd/awskms"
-	"github.com/dcoker/biscuit/shared"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -44,7 +43,7 @@ func main() {
 	if err := registerAlgorithms(); err != nil {
 		log.Fatal(err)
 	}
-	app := kingpin.New(shared.ProgName, mustAsset("data/usage.txt"))
+	app := kingpin.New("biscuit", mustAsset("data/usage.txt"))
 	app.Version(Version)
 	app.UsageTemplate(kingpin.LongHelpTemplate)
 	getFlags := app.Command("get", "Read a secret.")

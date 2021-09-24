@@ -18,11 +18,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
+	"github.com/dcoker/biscuit/cmd/internal/shared"
 	myAWS "github.com/dcoker/biscuit/internal/aws"
 	"github.com/dcoker/biscuit/internal/aws/arn"
 	stringsFunc "github.com/dcoker/biscuit/internal/strings"
 	"github.com/dcoker/biscuit/keymanager"
-	"github.com/dcoker/biscuit/shared"
 	"github.com/dcoker/biscuit/store"
 	"gopkg.in/alecthomas/kingpin.v2"
 )

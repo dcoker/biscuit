@@ -10,7 +10,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/dcoker/biscuit/shared"
+	"github.com/dcoker/biscuit/cmd/internal/shared"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 

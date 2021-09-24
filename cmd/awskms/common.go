@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/kms/types"
-	"github.com/dcoker/biscuit/shared"
+	"github.com/dcoker/biscuit/cmd/internal/shared"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
