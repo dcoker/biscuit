@@ -1,3 +1,5 @@
+//go:generate go run cmd/support/generate/main.go
+
 package main
 
 import (
