@@ -1,4 +1,4 @@
-package commands
+package cmd
 
 import (
 	"context"
@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dcoker/biscuit/shared"
+	"github.com/dcoker/biscuit/cmd/internal/shared"
+	"github.com/dcoker/biscuit/internal/yaml"
 	"github.com/dcoker/biscuit/store"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -45,7 +46,7 @@ func (r *export) Run(ctx context.Context) error {
 				errs++
 				continue
 			}
-			fmt.Print(shared.MustYaml(map[string]string{name: string(bytes)}))
+			fmt.Print(yaml.ToString(map[string]string{name: string(bytes)}))
 			break
 		}
 	}

@@ -6,12 +6,11 @@ import (
 
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 
-	"github.com/dcoker/biscuit/shared"
+	"github.com/dcoker/biscuit/cmd/internal/shared"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -68,7 +67,7 @@ func (r *kmsEditKeyPolicy) Run(ctx context.Context) error {
 }
 
 func launchEditor(contents string) (string, error) {
-	f, err := ioutil.TempFile("", "secrets")
+	f, err := os.CreateTemp("", "secrets")
 	if err != nil {
 		return "", err
 	}
@@ -93,7 +92,7 @@ func launchEditor(contents string) (string, error) {
 		return "", err
 	}
 
-	bytes, err := ioutil.ReadFile(f.Name())
+	bytes, err := os.ReadFile(f.Name())
 	if err != nil {
 		return "", err
 	}

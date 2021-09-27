@@ -7,12 +7,16 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/aws/smithy-go"
-	"github.com/dcoker/biscuit/commands"
-	"github.com/dcoker/biscuit/commands/awskms"
-	"github.com/dcoker/biscuit/shared"
+	"github.com/dcoker/biscuit/algorithms"
+	"github.com/dcoker/biscuit/algorithms/aesgcm256"
+	"github.com/dcoker/biscuit/algorithms/plain"
+	"github.com/dcoker/biscuit/algorithms/secretbox"
+	"github.com/dcoker/biscuit/cmd"
+	"github.com/dcoker/biscuit/cmd/awskms"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -21,12 +25,27 @@ var (
 )
 
 //go:embed data/*
-var fs embed.FS
+var fileSystem embed.FS
+
+func registerAlgorithms() error {
+	if err := algorithms.Register(secretbox.Name, secretbox.New()); err != nil {
+		return err
+	}
+	if err := algorithms.Register(plain.Name, plain.New()); err != nil {
+		return err
+	}
+	if err := algorithms.Register(aesgcm256.Name, aesgcm256.New()); err != nil {
+		return err
+	}
+	return nil
+}
 
 func main() {
 	os.Setenv("COLUMNS", "80") // hack to make --help output readable
-
-	app := kingpin.New(shared.ProgName, mustAsset("data/usage.txt"))
+	if err := registerAlgorithms(); err != nil {
+		log.Fatal(err)
+	}
+	app := kingpin.New("biscuit", mustAsset("data/usage.txt"))
 	app.Version(Version)
 	app.UsageTemplate(kingpin.LongHelpTemplate)
 	getFlags := app.Command("get", "Read a secret.")
@@ -43,10 +62,10 @@ func main() {
 	kmsGrantsCreateFlags := kmsGrantsFlags.Command("create", mustAsset("data/kmsgrantcreate.txt"))
 	kmsGrantsRetireFlags := kmsGrantsFlags.Command("retire", mustAsset("data/kmsgrantsretire.txt"))
 
-	getCommand := commands.NewGet(getFlags)
-	writeCommand := commands.NewPut(putFlags)
-	listCommand := commands.NewList(listFlags)
-	exportCommand := commands.NewExport(exportFlags)
+	getCommand := cmd.NewGet(getFlags)
+	writeCommand := cmd.NewPut(putFlags)
+	listCommand := cmd.NewList(listFlags)
+	exportCommand := cmd.NewExport(exportFlags)
 	kmsIDCommand := awskms.KmsGetCallerIdentity{}
 	kmsEditKeyPolicy := awskms.NewKmsEditKeyPolicy(kmsEditKeyPolicyFlags)
 	kmsGrantsListCommand := awskms.NewKmsGrantsList(kmsGrantsListFlags)
@@ -101,7 +120,7 @@ func main() {
 }
 
 func mustAsset(filename string) string {
-	bytes, err := fs.ReadFile(filename)
+	bytes, err := fileSystem.ReadFile(filename)
 	if err != nil {
 		panic(err)
 	}

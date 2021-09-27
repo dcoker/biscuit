@@ -1,4 +1,4 @@
-package algorithms
+package secretbox
 
 import (
 	"crypto/rand"
@@ -9,12 +9,8 @@ import (
 )
 
 const (
-	secretBoxLabel = "secretbox"
+	Name = "secretbox"
 )
-
-func init() {
-	registry[secretBoxLabel] = newSecretBox
-}
 
 var (
 	errUnableToDecrypt = errors.New("secretbox: unable to decrypt")
@@ -22,7 +18,7 @@ var (
 
 type secretBox struct{}
 
-func newSecretBox() Algorithm {
+func New() *secretBox {
 	return &secretBox{}
 }
 
@@ -47,10 +43,6 @@ func (s *secretBox) Decrypt(key []byte, ciphertext []byte) ([]byte, error) {
 		return nil, errUnableToDecrypt
 	}
 	return out, nil
-}
-
-func (s *secretBox) Label() string {
-	return secretBoxLabel
 }
 
 func (s *secretBox) NeedsKey() bool {

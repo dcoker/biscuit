@@ -1,18 +1,19 @@
-package commands
+package cmd
 
 import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"io/ioutil"
+	"io"
+	"io/fs"
 	"os"
 	"strings"
 
 	"sync"
 
 	"github.com/dcoker/biscuit/algorithms"
+	"github.com/dcoker/biscuit/cmd/internal/shared"
 	"github.com/dcoker/biscuit/keymanager"
-	"github.com/dcoker/biscuit/shared"
 	"github.com/dcoker/biscuit/store"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -98,7 +99,7 @@ func (w *put) Run(ctx context.Context) error {
 	}
 
 	// If the file doesn't have a template, create one from the keys used here.
-	if _, err := database.Get(store.KeyTemplateName); store.IsProbablyNewStore(err) {
+	if _, err := database.Get(store.KeyTemplateName); errors.Is(err, fs.ErrNotExist) {
 		var values []store.Value
 		for _, key := range keys {
 			values = append(values, store.Value{Key: key})
@@ -124,7 +125,7 @@ func (w *put) chooseKeys(database store.FileStore) ([]store.Key, error) {
 		}
 		return keys, nil
 	}
-	algo, err := algorithms.New(*w.algo)
+	algo, err := algorithms.Get(*w.algo)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +147,7 @@ func (w *put) choosePlaintext() ([]byte, error) {
 		return nil, errConflictingValue
 	}
 	if *w.fromFile != nil {
-		plaintext, err := ioutil.ReadAll(*w.fromFile)
+		plaintext, err := io.ReadAll(*w.fromFile)
 		return plaintext, err
 	}
 	return []byte(*w.value), nil
@@ -154,11 +155,11 @@ func (w *put) choosePlaintext() ([]byte, error) {
 
 func encryptOne(ctx context.Context, keyConfig store.Key, name string, plaintext []byte) (store.Value, error) {
 	var value store.Value
-	algo, err := algorithms.New(keyConfig.Algorithm)
+	algo, err := algorithms.Get(keyConfig.Algorithm)
 	if err != nil {
 		return value, err
 	}
-	value.Algorithm = algo.Label()
+	value.Algorithm = keyConfig.Algorithm
 
 	var envelopeKey keymanager.EnvelopeKey
 	if algo.NeedsKey() {

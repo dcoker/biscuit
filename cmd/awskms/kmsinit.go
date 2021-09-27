@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"sort"
 	"strings"
@@ -17,9 +18,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
+	"github.com/dcoker/biscuit/cmd/internal/shared"
 	myAWS "github.com/dcoker/biscuit/internal/aws"
+	"github.com/dcoker/biscuit/internal/aws/arn"
+	stringsFunc "github.com/dcoker/biscuit/internal/strings"
 	"github.com/dcoker/biscuit/keymanager"
-	"github.com/dcoker/biscuit/shared"
 	"github.com/dcoker/biscuit/store"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -94,7 +97,7 @@ func (w *kmsInit) Run(ctx context.Context) error {
 
 	// If the file exists, we'll make changes to its template rather than replace it.
 	keyConfigs, err := database.Get(store.KeyTemplateName)
-	if err != nil && !(err == store.ErrNameNotFound || store.IsProbablyNewStore(err)) {
+	if err != nil && !(err == store.ErrNameNotFound || errors.Is(err, fs.ErrNotExist)) {
 		return err
 	}
 
@@ -125,7 +128,7 @@ func (w *kmsInit) Run(ctx context.Context) error {
 
 	fmt.Printf("The template used by %s has been updated to include %s: %s.\n",
 		*w.filename,
-		pluralize("key", len(regionKeys)),
+		stringsFunc.Pluralize("key", len(regionKeys)),
 		stringStringMapValues(regionKeys))
 
 	return database.Put(store.KeyTemplateName, updatedTemplate)
@@ -232,7 +235,7 @@ func checkKmsKeyExists(ctx context.Context, keyAlias, region string) (string, er
 
 func (w *kmsInit) discoverOrCreateKeys(ctx context.Context) (map[string]string, error) {
 	fmt.Printf("Checking %s for the '%s' label.\n",
-		friendlyJoin(*w.regions),
+		stringsFunc.FriendlyJoin(*w.regions),
 		*w.label)
 
 	aliasName := kmsAliasName(*w.label)
@@ -262,8 +265,8 @@ func (w *kmsInit) discoverOrCreateKeys(ctx context.Context) (map[string]string, 
 			return nil, err
 		}
 
-		fmt.Printf("%s %s need to be provisioned.\n", pluralize("Region", len(regionsMissingKeys)),
-			friendlyJoin(regionsMissingKeys))
+		fmt.Printf("%s %s need to be provisioned.\n", stringsFunc.Pluralize("Region", len(regionsMissingKeys)),
+			stringsFunc.FriendlyJoin(regionsMissingKeys))
 
 		errs := make(chan error, len(regionsMissingKeys))
 		var wg sync.WaitGroup
@@ -361,58 +364,19 @@ func (w *kmsInit) constructArns(ctx context.Context) ([]string, []string, error)
 	}
 	awsAccountID := *callerIdentity.Account
 	fmt.Printf("Detected account ID #%s and that I am %s.\n", awsAccountID, *callerIdentity.Arn)
-	adminArns := cleanArnList(awsAccountID, *w.administratorArns+","+*callerIdentity.Arn)
-	if err := validateArnList(adminArns); err != nil {
-		return nil, nil, fmt.Errorf("Administrator ARNs: %s", err)
+	adminArns := arn.CleanList(awsAccountID, *w.administratorArns+","+*callerIdentity.Arn)
+	if len(adminArns) == 0 {
+		return nil, nil, fmt.Errorf("there must be a least one administrator ARN")
 	}
-	userArns := cleanArnList(awsAccountID, *w.userArns+","+*callerIdentity.Arn)
-	if err := validateArnList(userArns); err != nil {
-		return nil, nil, fmt.Errorf("User ARNs: %s", err)
+
+	userArns := arn.CleanList(awsAccountID, *w.userArns+","+*callerIdentity.Arn)
+	if len(userArns) == 0 {
+		return nil, nil, fmt.Errorf("there must be a least one user ARN")
+
 	}
 	fmt.Printf("Administrative actions will be allowed by %s\n", adminArns)
 	fmt.Printf("User actions will be allowed by %s\n", userArns)
 	return adminArns, userArns, nil
-}
-
-func cleanArnList(accountID, arns string) []string {
-	cleaned := make(map[string]struct{})
-	for _, arn := range strings.Split(arns, ",") {
-		arn := cleanArn(accountID, arn)
-		if len(arn) > 0 {
-			cleaned[arn] = struct{}{}
-		}
-	}
-	return stringsetToList(cleaned)
-}
-
-func cleanArn(accountID, arn string) string {
-	arn = strings.TrimSpace(arn)
-	if len(arn) == 0 {
-		return ""
-	}
-	if strings.HasPrefix(arn, "arn:") {
-		return arn
-	} else if !(strings.HasPrefix(arn, "user/") || strings.HasPrefix(arn, "role/")) {
-		return fmt.Sprintf("arn:aws:iam::%s:user/%s", accountID, arn)
-	} else {
-		return fmt.Sprintf("arn:aws:iam::%s:%s", accountID, arn)
-	}
-}
-
-func stringsetToList(input map[string]struct{}) []string {
-	results := []string{}
-	for key := range input {
-		results = append(results, key)
-	}
-	sort.Strings(results)
-	return results
-}
-
-func validateArnList(arns []string) error {
-	if len(arns) == 0 {
-		return errors.New("There must be at least one entry.")
-	}
-	return nil
 }
 
 func stringStringMapValues(input map[string]string) []string {
@@ -422,23 +386,4 @@ func stringStringMapValues(input map[string]string) []string {
 	}
 	sort.Strings(results)
 	return results
-}
-
-func pluralize(word string, count int) string {
-	if count > 1 {
-		return word + "s"
-	}
-	return word
-}
-
-func friendlyJoin(words []string) string {
-	if len(words) == 0 {
-		return ""
-	}
-	if len(words) == 1 {
-		return words[0]
-	}
-	sort.Strings(words)
-	commas := words[0 : len(words)-1]
-	return strings.Join(commas, ", ") + " and " + words[len(words)-1]
 }

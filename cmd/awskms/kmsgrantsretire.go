@@ -3,8 +3,8 @@ package awskms
 import (
 	"context"
 
+	"github.com/dcoker/biscuit/cmd/internal/shared"
 	"github.com/dcoker/biscuit/keymanager"
-	"github.com/dcoker/biscuit/shared"
 	"github.com/dcoker/biscuit/store"
 	"gopkg.in/alecthomas/kingpin.v2"
 )

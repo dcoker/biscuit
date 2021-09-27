@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	myAWS "github.com/dcoker/biscuit/internal/aws"
+	"github.com/dcoker/biscuit/internal/aws/arn"
 )
 
 const (
@@ -71,9 +72,9 @@ func (k *Kms) Label() string {
 	return KmsLabel
 }
 
-func newKmsClient(ctx context.Context, arn string) (*kms.Client, error) {
+func newKmsClient(ctx context.Context, larn string) (*kms.Client, error) {
 	cfg := myAWS.MustNewConfig(ctx)
-	parsed, err := NewARN(arn)
+	parsed, err := arn.New(larn)
 
 	if err == nil {
 		cfg.Region = parsed.Region

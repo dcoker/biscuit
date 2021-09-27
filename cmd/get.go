@@ -1,14 +1,13 @@
-package commands
+package cmd
 
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/dcoker/biscuit/algorithms"
+	"github.com/dcoker/biscuit/cmd/internal/shared"
 	"github.com/dcoker/biscuit/keymanager"
-	"github.com/dcoker/biscuit/shared"
 	"github.com/dcoker/biscuit/store"
 	"github.com/mattn/go-isatty"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -61,7 +60,7 @@ func (r *get) Run(ctx context.Context) error {
 	}
 
 	if len(*r.writeTo) > 0 {
-		return ioutil.WriteFile(*r.writeTo, plaintext, 0644)
+		return os.WriteFile(*r.writeTo, plaintext, 0644)
 	}
 
 	fmt.Printf("%s", plaintext)
@@ -72,7 +71,7 @@ func (r *get) Run(ctx context.Context) error {
 }
 
 func decryptOneValue(ctx context.Context, value store.Value, name string) ([]byte, error) {
-	algo, err := algorithms.New(value.Algorithm)
+	algo, err := algorithms.Get(value.Algorithm)
 	if err != nil {
 		return []byte{}, err
 	}
