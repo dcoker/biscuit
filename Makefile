@@ -60,3 +60,7 @@ localstack:
 .PHONY: docker
 docker:
 	docker build -t ghcr.io/dcoker/biscuit .
+
+.PHONY: lint
+lint:
+	docker run --rm -v $(shell pwd):/app -w /app golangci/golangci-lint:latest golangci-lint run --config .github/golangci.yml -v
