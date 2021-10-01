@@ -74,6 +74,9 @@ func (w *kmsGrantsCreate) Run(ctx context.Context) error {
 	}
 
 	granteeArn, retireeArn, err := resolveGranteeArns(ctx, *w.granteePrincipal, *w.retiringPrincipal)
+	if err != nil {
+		return err
+	}
 
 	// The template from which grants in each region are created.
 	createGrantInput := kms.CreateGrantInput{
