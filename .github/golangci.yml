@@ -1,0 +1,6 @@
+run:
+  skip-files:
+
+linters-settings:
+  errcheck:
+    exclude: .github/errcheck.txt
