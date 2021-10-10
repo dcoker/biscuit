@@ -4,7 +4,6 @@ PKG := ./...
 TESTS := ".*"
 GOIMPORTS := goimports
 VERSION ?= $(shell git describe --long --tags --always)
-SOURCE ?= $(shell pwd)
 
 .PHONY: build
 	$(GO) install $(GOVERSIONLDFLAG) $(GOFLAGS)
@@ -38,7 +37,6 @@ goreleaser-test:
 		-v $(shell pwd):/go/src/github.com/dcoker/biscuit \
 		-v /var/run/docker.sock:/var/run/docker.sock \
 		-w /go/src/github.com/dcoker/biscuit \
-		-e SOURCE=${SOURCE} \
 		-e GITHUB_TOKEN=${GITHUB_TOKEN} \
 		goreleaser/goreleaser release --rm-dist --snapshot
 

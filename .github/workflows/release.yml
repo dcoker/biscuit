@@ -29,15 +29,6 @@ jobs:
           go mod download
           go mod tidy -v
 
-      - name: Login Github Container Registry
-        run: echo "${{ secrets.GORELEASER_GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Set SOURCE Environment Variable
-        run: |
-          echo 'SOURCE<<EOF' >> $GITHUB_ENV
-          echo ${GITHUB_SERVER_URL}/${{ github.repository }} >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v2
         with:
