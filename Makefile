@@ -3,9 +3,7 @@ GOFLAGS := -v
 PKG := ./...
 TESTS := ".*"
 GOIMPORTS := goimports
-PROGNAME := biscuit
-VERSION := $(shell git describe --long --tags --always)
-GOVERSIONLDFLAG := -ldflags="-X main.Version=$(VERSION)"
+VERSION ?= $(shell git describe --long --tags --always)
 
 .PHONY: build
 	$(GO) install $(GOVERSIONLDFLAG) $(GOFLAGS)
@@ -32,24 +30,15 @@ clean:
 	rm -f $(GOPATH)/bin/$(PROGNAME)
 	$(GO) clean $(GOFLAGS) -i $(PKG)
 
-.PHONY: cross
-cross:
-	gox $(GOVERSIONLDFLAG) \
-		-output 'build/{{.Dir}}/{{.OS}}_{{.Arch}}/biscuit' \
-		-os "linux darwin windows" \
-		-arch "amd64 arm arm64 386" \
-		-osarch '!darwin/arm !darwin/386 !darwin/arm64'
-	./cross.sh
-
-.PHONY: docker-build
-docker-build:
-	docker build -f Dockerfile.e2e -t $(PROGNAME)/local .
-
-.PHONY: docker-cross
-docker-cross: docker-build
-	mkdir build_docker_cross || /bin/true
-	docker run -v $(shell pwd)/build_docker_cross/:/tmp/build/ $(PROGNAME)/local /bin/bash -xe -c \
-		"rm -f build && ln -s /tmp/build/ build && make cross"
+.PHONY: goreleaser-test
+goreleaser-test:
+	git tag ${VERSION}
+	docker run --rm \
+		-v $(shell pwd):/go/src/github.com/dcoker/biscuit \
+		-v /var/run/docker.sock:/var/run/docker.sock \
+		-w /go/src/github.com/dcoker/biscuit \
+		-e GITHUB_TOKEN=${GITHUB_TOKEN} \
+		goreleaser/goreleaser release --rm-dist --snapshot
 
 
 .PHONY: localstack
