@@ -1,8 +1,11 @@
+> :warning: **Biscuit is no longer maintained.** Do not use Biscuit on new projects.
+
 # Biscuit
 
 [![Build Status](https://travis-ci.org/dcoker/biscuit.svg)](https://travis-ci.org/dcoker/biscuit)
 
 Biscuit is a simple key-value store for your infrastructure secrets.
+
 
 ## Is Biscuit right for me?
 
